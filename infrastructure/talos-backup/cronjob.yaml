@@ -1,0 +1,66 @@
+# Talos's own DR path: `talosctl etcd snapshot` produces a single file that
+# restores your ENTIRE cluster state on recovery — every object, every
+# Secret — via `talosctl bootstrap --recover-from=<snapshot>`. This is the
+# highest-leverage backup in this whole DR setup: one file replaces having
+# to manually recreate 7+ out-of-band secrets by hand.
+#
+# Reuses the tuppr-talosconfig secret from infrastructure/tuppr/README.md —
+# same credential, same client, no new secret needed here.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: etcd-snapshot
+  namespace: kube-system-upgrade
+spec:
+  schedule: "30 3 * * *"   # after Renovate's nightly run (3am)
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+            - name: etcd-snapshot
+              image: ghcr.io/siderolabs/talosctl:v1.9.0
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  set -e
+                  export TALOSCONFIG=/var/run/secrets/talos.dev/talosconfig
+                  DATE=$(date +%Y%m%d-%H%M%S)
+                  talosctl etcd snapshot /backups/etcd-snapshot-${DATE}.db
+                  # keep the last 14 daily snapshots, prune older ones
+                  cd /backups && ls -t etcd-snapshot-*.db | tail -n +15 | xargs -r rm --
+              volumeMounts:
+                - name: talosconfig
+                  mountPath: /var/run/secrets/talos.dev
+                  readOnly: true
+                - name: backups
+                  mountPath: /backups
+              resources:
+                requests:
+                  cpu: 50m
+                  memory: 64Mi
+                limits:
+                  memory: 256Mi
+          restartPolicy: Never
+          volumes:
+            - name: talosconfig
+              secret:
+                secretName: tuppr-talosconfig
+            - name: backups
+              persistentVolumeClaim:
+                claimName: etcd-backups
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: etcd-backups
+  namespace: kube-system-upgrade
+spec:
+  accessModes: ["ReadWriteOnce"]
+  storageClassName: nfs-client
+  resources:
+    requests:
+      storage: 5Gi

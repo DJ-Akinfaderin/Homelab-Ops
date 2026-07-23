@@ -1,0 +1,19 @@
+# Capacitor's RBAC includes read access to Secrets (needed to show
+# HelmRelease/Flux state fully) — same reasoning as Jellyfin/Immich, this
+# stays on the private Tailscale path rather than the LAN Traefik path.
+# No funnel annotation, so nothing here is publicly reachable.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: capacitor-tailscale
+  namespace: flux-system
+spec:
+  ingressClassName: tailscale
+  defaultBackend:
+    service:
+      name: capacitor
+      port:
+        number: 9000
+  tls:
+    - hosts:
+        - capacitor   # becomes capacitor.<your-tailnet-name>.ts.net

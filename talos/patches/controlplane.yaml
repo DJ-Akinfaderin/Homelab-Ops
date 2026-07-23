@@ -1,0 +1,8 @@
+# PC1 — control plane only.
+# Unlike the single-node version of this cluster, we have two dedicated
+# workers, so we deliberately do NOT remove the default control-plane
+# taint. No application pods should ever land here — this node's whole
+# job is etcd + the API server, staying fast and unbothered.
+machine:
+  network:
+    hostname: talos-cp-1

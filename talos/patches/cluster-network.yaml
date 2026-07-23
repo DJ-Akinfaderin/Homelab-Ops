@@ -1,0 +1,16 @@
+# Applied to ALL nodes (control plane + workers).
+# Disables Talos's built-in Flannel CNI and kube-proxy so Cilium can
+# replace both. KubePrism is required once kube-proxy is gone — it gives
+# kubelet and other node components a local, reliable way to reach the
+# API server without kube-proxy's Service routing.
+cluster:
+  network:
+    cni:
+      name: none
+  proxy:
+    disabled: true
+machine:
+  features:
+    kubePrism:
+      enabled: true
+      port: 7445

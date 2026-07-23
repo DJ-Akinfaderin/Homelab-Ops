@@ -1,0 +1,46 @@
+# Harness Delegate — the only piece that runs in-cluster. The actual CD
+# pipelines/dashboard live in Harness's SaaS Manager; this pod just
+# connects outbound to it and executes deployment tasks. Much lighter
+# than Devtron's full stack — one pod, no bundled Argo CD, no local
+# database.
+#
+# accountId, delegateToken, and managerEndpoint below are account-specific
+# and generated from the Harness UI (Account Settings > Delegates > New
+# Delegate > Kubernetes > Helm Chart). Pull the real values from there —
+# don't reuse the placeholders as-is. The delegate token specifically is a
+# secret: create it out-of-band like the Tailscale/Renovate ones, then
+# reference it here rather than committing the raw value.
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: harness-delegate
+  namespace: harness-delegate-ng
+spec:
+  interval: 1h
+  chart:
+    spec:
+      chart: harness-delegate-ng
+      sourceRef:
+        kind: HelmRepository
+        name: harness-delegate
+  values:
+    accountId: "<your-harness-account-id>"
+    delegateName: homelab-delegate
+    managerEndpoint: "https://app.harness.io"
+    delegateDockerImage: "harness/delegate:latest"   # pin to the version shown in your UI's install command
+    replicas: 1
+    upgrader:
+      enabled: false   # skip the auto-upgrader on a homelab, keeps behavior predictable
+
+    # References the secret created per harness/README.md — do not put the
+    # actual token value here.
+    delegateTokenSecretRef:
+      name: harness-delegate-token
+      key: DELEGATE_TOKEN
+
+    resources:
+      requests:
+        cpu: 200m
+        memory: 512Mi
+      limits:
+        memory: 1Gi

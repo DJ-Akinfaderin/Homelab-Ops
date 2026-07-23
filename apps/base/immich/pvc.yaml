@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: immich-library
+  namespace: media
+spec:
+  accessModes: ["ReadWriteMany"]
+  storageClassName: nfs-client
+  resources:
+    requests:
+      storage: 1Ti   # sized to whatever your NAS's photo volume actually has

@@ -1,0 +1,35 @@
+# Single instance — same reasoning applied to Garage's replication_factor
+# earlier: CNPG's HA/failover machinery is genuinely valuable at scale,
+# but for one app's session/config data on a homelab cluster, it's
+# overhead without a real payoff. The nfs-client PVC underneath is the
+# actual durability story here, plus this repo's existing etcd-snapshot +
+# NAS backup story.
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: authelia-postgres
+  namespace: authelia
+spec:
+  instances: 1
+  imageName: ghcr.io/cloudnative-pg/postgresql:16.4
+
+  bootstrap:
+    initdb:
+      database: authelia
+      owner: authelia
+      secret:
+        name: authelia-postgres-credentials   # from external-secret-postgres.yaml — CNPG uses these exact credentials rather than generating random ones
+
+  storage:
+    storageClass: nfs-client
+    size: 2Gi
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      memory: 512Mi
+
+  monitoring:
+    enablePodMonitor: true

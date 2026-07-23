@@ -1,0 +1,32 @@
+# This is a pre-existing folder on your NAS, not something to dynamically
+# provision a fresh subdirectory for — so this is a STATIC PV (bound
+# directly to server+path), not the nfs-client StorageClass everything
+# else in this repo uses. storageClassName: "" plus volumeName is what
+# forces the PVC to bind to exactly this PV rather than triggering dynamic
+# provisioning.
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: immich-external-public-photos
+spec:
+  capacity:
+    storage: 1Ti   # arbitrary — NFS doesn't actually enforce this, it's just what Kubernetes displays
+  accessModes: ["ReadOnlyMany"]
+  persistentVolumeReclaimPolicy: Retain   # never let Kubernetes delete real photos on reclaim
+  nfs:
+    server: 10.70.5.185
+    path: /photos/Public
+  storageClassName: ""
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: immich-external-public-photos
+  namespace: media
+spec:
+  accessModes: ["ReadOnlyMany"]
+  storageClassName: ""
+  volumeName: immich-external-public-photos
+  resources:
+    requests:
+      storage: 1Ti

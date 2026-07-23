@@ -1,0 +1,24 @@
+# One wildcard cert for everything behind Traefik, rather than a
+# Certificate-per-app — this is the main advantage of DNS-01 over HTTP-01,
+# which can't issue wildcards at all. Using a dedicated "home" subdomain
+# so LAN services (jellyfin.home.dakin.im, immich.home.dakin.im, etc.)
+# stay separate from anything else you might want to put on the apex
+# domain later.
+#
+# Starts pointed at the staging issuer. Once you've confirmed it issues
+# successfully (check `kubectl describe certificate traefik-default-cert -n
+# kube-system`), switch issuerRef.name to letsencrypt-cloudflare-prod and
+# delete the resulting secret to force reissuance against production.
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: traefik-default-cert
+  namespace: kube-system
+spec:
+  secretName: traefik-default-cert-tls
+  issuerRef:
+    name: letsencrypt-cloudflare-staging
+    kind: ClusterIssuer
+  dnsNames:
+    - "home.dakin.im"
+    - "*.home.dakin.im"

@@ -1,0 +1,43 @@
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: traefik
+  namespace: kube-system
+spec:
+  interval: 1h
+  chart:
+    spec:
+      chart: traefik
+      version: ">=33.0.0 <34.0.0"
+      sourceRef:
+        kind: HelmRepository
+        name: traefik
+  values:
+    service:
+      type: LoadBalancer   # gets its IP from the Cilium pool above
+    ports:
+      web:
+        redirectTo:
+          port: websecure
+      websecure:
+        tls:
+          enabled: true
+    # Every Traefik-routed service gets this cert automatically — no
+    # per-app cert-manager annotations needed, since it's a wildcard.
+    tlsStore:
+      default:
+        defaultCertificate:
+          secretName: traefik-default-cert-tls
+    # Required for the Authelia ForwardAuth Middleware (lives in the
+    # authelia namespace) to be usable from Ingresses in other namespaces
+    # via the router.middlewares annotation — without this, that
+    # annotation is silently ignored rather than erroring loudly.
+    providers:
+      kubernetesCRD:
+        allowCrossNamespace: true
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        memory: 256Mi

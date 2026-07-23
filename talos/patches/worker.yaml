@@ -1,0 +1,17 @@
+# PC2 / PC3 — workers. Apply this once per node, changing the hostname
+# each time (talos-worker-1, talos-worker-2).
+#
+# The `files` block redirects containerd's CDI (Container Device Interface)
+# spec directory. Talos's /etc is read-only by design, so the i915 GPU
+# extension's device specs have to be pointed at /var/cdi instead — without
+# this, containers can't actually claim the GPU even though the extension
+# is installed.
+machine:
+  network:
+    hostname: talos-worker-1   # talos-worker-2 on PC3
+  files:
+    - path: /etc/cri/conf.d/20-customization.part
+      op: create
+      content: |
+        [plugins."io.containerd.cri.v1.runtime"]
+          cdi_spec_dirs = ["/var/cdi/static", "/var/cdi/dynamic"]

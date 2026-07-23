@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cluster Traffic Flow</title>
+<style>
+  :root{
+    --bg:#0f1319;
+    --panel:#161b23;
+    --panel-2:#1c222c;
+    --line:#2a323e;
+    --text:#e7ebf0;
+    --muted:#8b96a5;
+    --tailscale:#8b7ff0;
+    --lan:#e8a23a;
+    --authelia:#e85d5d;
+    --app:#3ec98f;
+    --backing:#4a5568;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:'SF Mono','JetBrains Mono',ui-monospace,Consolas,monospace;
+    padding:24px 14px 56px;
+  }
+  .wrap{max-width:900px;margin:0 auto;}
+  h1{font-size:1.1rem;margin:0 0 4px;letter-spacing:0.01em;}
+  .sub{color:var(--muted);font-size:0.78rem;margin:0 0 28px;}
+
+  .legend{
+    display:flex;flex-wrap:wrap;gap:14px;
+    margin-bottom:28px;font-size:0.68rem;color:var(--muted);
+  }
+  .legend span{display:inline-flex;align-items:center;gap:6px;}
+  .dot{width:9px;height:9px;border-radius:2px;flex-shrink:0;}
+
+  .tier{margin-bottom:6px;}
+  .tier-label{
+    font-size:0.62rem;text-transform:uppercase;letter-spacing:0.1em;
+    color:var(--muted);margin-bottom:8px;
+  }
+
+  .row{display:grid;gap:10px;margin-bottom:6px;}
+  .row.two{grid-template-columns:1fr 1fr;}
+  .row.four{grid-template-columns:repeat(4,1fr);}
+  @media(max-width:640px){
+    .row.four{grid-template-columns:repeat(2,1fr);}
+  }
+
+  .box{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:6px;
+    padding:12px 14px;
+    font-size:0.74rem;
+  }
+  .box .name{font-weight:600;margin-bottom:3px;}
+  .box .desc{color:var(--muted);font-size:0.66rem;line-height:1.4;}
+
+  .box.tailscale{border-color:var(--tailscale);}
+  .box.lan{border-color:var(--lan);}
+  .box.authelia{border-color:var(--authelia);background:#1e1417;}
+  .box.app{border-color:var(--app);}
+  .box.backing{border-color:var(--backing);background:var(--panel-2);}
+  .box.center{text-align:center;}
+
+  .connector{
+    display:flex;justify-content:center;align-items:center;
+    height:26px;color:var(--muted);font-size:0.9rem;
+  }
+  .connector::before{content:"↓";}
+
+  .split{
+    display:grid;grid-template-columns:1fr 1fr;gap:10px;
+    position:relative;
+  }
+  .fork-label{
+    font-size:0.6rem;color:var(--muted);text-align:center;margin-bottom:4px;
+  }
+
+  .backing-row{
+    display:flex;flex-wrap:wrap;gap:8px;margin-top:20px;
+    padding-top:16px;border-top:1px dashed var(--line);
+  }
+  .backing-row .box{flex:1;min-width:140px;}
+  .backing-title{font-size:0.62rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);margin-bottom:8px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>How traffic reaches an app</h1>
+  <p class="sub">Two independent entry paths — neither touches the public internet</p>
+
+  <div class="legend">
+    <span><span class="dot" style="background:var(--tailscale)"></span>Tailscale (private mesh)</span>
+    <span><span class="dot" style="background:var(--lan)"></span>Home LAN via Traefik</span>
+    <span><span class="dot" style="background:var(--authelia)"></span>Authelia (LAN-only apps)</span>
+    <span><span class="dot" style="background:var(--app)"></span>Application</span>
+    <span><span class="dot" style="background:var(--backing)"></span>Backing service</span>
+  </div>
+
+  <div class="tier">
+    <div class="tier-label">Your device</div>
+    <div class="box center" style="max-width:280px;margin:0 auto;">
+      <div class="name">Phone / laptop</div>
+      <div class="desc">Tailscale app active, or just on home WiFi</div>
+    </div>
+  </div>
+
+  <div class="connector"></div>
+
+  <div class="row two">
+    <div class="box tailscale center">
+      <div class="name">Tailscale mesh</div>
+      <div class="desc">Works identically at home or away — MagicDNS, no ports opened</div>
+    </div>
+    <div class="box lan center">
+      <div class="name">Home WiFi → 10.70.5.90</div>
+      <div class="desc">Cilium-announced LAN IP, no VPN needed</div>
+    </div>
+  </div>
+
+  <div class="row two">
+    <div class="connector"></div>
+    <div class="connector"></div>
+  </div>
+
+  <div class="row two">
+    <div class="box tailscale center">
+      <div class="name">Tailscale Operator</div>
+      <div class="desc">One Ingress per app, own MagicDNS name each</div>
+    </div>
+    <div class="box lan center">
+      <div class="name">Traefik</div>
+      <div class="desc">cert-manager wildcard cert, *.home.dakin.im</div>
+    </div>
+  </div>
+
+  <div class="row two">
+    <div class="connector"></div>
+    <div class="connector"></div>
+  </div>
+
+  <div class="row two">
+    <div class="box center" style="border-color:var(--tailscale);opacity:0.85;">
+      <div class="desc" style="font-size:0.64rem;">→ straight to every app's Service</div>
+    </div>
+    <div class="box center" style="border-color:var(--lan);opacity:0.85;">
+      <div class="desc" style="font-size:0.64rem;">forks by app — some go straight through, two are gated</div>
+    </div>
+  </div>
+
+  <div class="tier" style="margin-top:22px;">
+    <div class="tier-label">Straight through (own login, or none needed)</div>
+    <div class="row four">
+      <div class="box app"><div class="name">Jellyfin</div><div class="desc">Tailscale + LAN</div></div>
+      <div class="box app"><div class="name">Immich</div><div class="desc">Tailscale + LAN</div></div>
+      <div class="box app"><div class="name">Grafana</div><div class="desc">internal only, no ingress</div></div>
+      <div class="box app"><div class="name">Authelia portal</div><div class="desc">auth.home.dakin.im</div></div>
+    </div>
+  </div>
+
+  <div class="tier" style="margin-top:18px;">
+    <div class="tier-label">Gated by Authelia (LAN path only — no native login of their own)</div>
+    <div class="row two">
+      <div class="connector"></div>
+      <div class="connector"></div>
+    </div>
+    <div class="row two">
+      <div class="box authelia center">
+        <div class="name">ForwardAuth middleware</div>
+        <div class="desc">Redirects to auth.home.dakin.im if not logged in + 2FA'd</div>
+      </div>
+      <div class="box authelia center">
+        <div class="name">ForwardAuth middleware</div>
+        <div class="desc">Same middleware, referenced from both Ingresses</div>
+      </div>
+    </div>
+    <div class="row two">
+      <div class="connector"></div>
+      <div class="connector"></div>
+    </div>
+    <div class="row two">
+      <div class="box app"><div class="name">Capacitor</div><div class="desc">Tailscale (ungated) + LAN (gated)</div></div>
+      <div class="box app"><div class="name">Gatus</div><div class="desc">Tailscale (ungated) + LAN (gated)</div></div>
+    </div>
+  </div>
+
+  <div class="backing-row">
+    <div style="width:100%;" class="backing-title">Backing services (not in the request path, but what apps depend on)</div>
+    <div class="box backing"><div class="name">NAS · NFS</div><div class="desc">Jellyfin/Immich media, Grafana/Prometheus/Loki data</div></div>
+    <div class="box backing"><div class="name">Immich's Postgres+Redis</div><div class="desc">bundled with its own chart</div></div>
+    <div class="box backing"><div class="name">CNPG Postgres</div><div class="desc">Authelia's sessions + config only</div></div>
+    <div class="box backing"><div class="name">Infisical</div><div class="desc">every secret above, via External Secrets Operator</div></div>
+  </div>
+</div>
+</body>
+</html>

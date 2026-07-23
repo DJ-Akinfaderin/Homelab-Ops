@@ -1,0 +1,26 @@
+# The operator itself — watches for Cluster resources cluster-wide and
+# manages their lifecycle. This alone doesn't create any database; that's
+# infrastructure/authelia/postgres-cluster.yaml, the first real workload.
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: cnpg
+  namespace: cnpg-system
+spec:
+  interval: 1h
+  chart:
+    spec:
+      chart: cloudnative-pg
+      version: ">=0.22.0 <1.0.0"
+      sourceRef:
+        kind: HelmRepository
+        name: cnpg
+  values:
+    resources:
+      requests:
+        cpu: 50m
+        memory: 100Mi
+      limits:
+        memory: 256Mi
+    monitoring:
+      podMonitorEnabled: true   # picked up by the existing Prometheus automatically

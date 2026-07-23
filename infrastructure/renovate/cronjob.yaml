@@ -1,0 +1,30 @@
+# Runs nightly (2-5am UTC, matching renovate.json's schedule window) rather
+# than as a persistent pod — Renovate's job is a batch scan, not a service,
+# so this only consumes resources briefly instead of sitting idle 24/7.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: renovate
+  namespace: renovate
+spec:
+  schedule: "0 3 * * *"
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+            - name: renovate
+              image: renovate/renovate:latest   # pin to a specific tag once Renovate itself is being managed by... Renovate
+              args:
+                - "<your-github-username>/homelab-repo"
+              envFrom:
+                - secretRef:
+                    name: renovate-env
+              resources:
+                requests:
+                  cpu: 250m
+                  memory: 512Mi
+                limits:
+                  memory: 1Gi
+          restartPolicy: Never

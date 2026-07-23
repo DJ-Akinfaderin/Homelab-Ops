@@ -1,0 +1,39 @@
+# Two issuers, on purpose. Let's Encrypt's production API has real rate
+# limits (currently 5 duplicate certs/week per exact domain set) — hit
+# them while debugging a typo in your ClusterIssuer and you're locked out
+# for days. Point Certificates at -staging first, confirm it actually
+# issues (staging certs aren't browser-trusted, that's expected), THEN
+# switch to -prod.
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-cloudflare-staging
+spec:
+  acme:
+    server: https://acme-staging-v02.api.letsencrypt.org/directory
+    email: "adedejiakinfaderin@gmail.com"
+    privateKeySecretRef:
+      name: letsencrypt-cloudflare-staging-key
+    solvers:
+      - dns01:
+          cloudflare:
+            apiTokenSecretRef:
+              name: cloudflare-api-token
+              key: api-token
+---
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-cloudflare-prod
+spec:
+  acme:
+    server: https://acme-v02.api.letsencrypt.org/directory
+    email: "adedejiakinfaderin@gmail.com"
+    privateKeySecretRef:
+      name: letsencrypt-cloudflare-prod-key
+    solvers:
+      - dns01:
+          cloudflare:
+            apiTokenSecretRef:
+              name: cloudflare-api-token
+              key: api-token

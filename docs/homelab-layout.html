@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Homelab Physical Layout</title>
+<style>
+  :root{
+    --bg:#0f1319;
+    --panel:#161b23;
+    --panel-2:#1c222c;
+    --line:#2a323e;
+    --text:#e7ebf0;
+    --muted:#8b96a5;
+    --net:#4a5568;
+    --node:#3ec98f;
+    --cp:#e8a23a;
+    --nas:#8b7ff0;
+    --overlay:#e85d5d;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:'SF Mono','JetBrains Mono',ui-monospace,Consolas,monospace;
+    padding:24px 14px 56px;
+  }
+  .wrap{max-width:820px;margin:0 auto;}
+  h1{font-size:1.1rem;margin:0 0 4px;}
+  .sub{color:var(--muted);font-size:0.78rem;margin:0 0 26px;}
+
+  .legend{
+    display:flex;flex-wrap:wrap;gap:14px;
+    margin-bottom:26px;font-size:0.68rem;color:var(--muted);
+  }
+  .legend span{display:inline-flex;align-items:center;gap:6px;}
+  .dot{width:9px;height:9px;border-radius:2px;flex-shrink:0;}
+
+  .net-band{
+    background:var(--panel-2);
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding:14px 16px;
+    margin-bottom:4px;
+    text-align:center;
+    font-size:0.72rem;
+    color:var(--muted);
+  }
+  .net-band b{color:var(--text);}
+
+  .connector{
+    display:flex;justify-content:center;align-items:center;
+    height:22px;color:var(--muted);font-size:0.85rem;
+  }
+  .connector::before{content:"↓";}
+
+  .lan-line{
+    height:2px;background:var(--net);
+    margin:8px 0;position:relative;
+  }
+  .lan-line .tag{
+    position:absolute;top:-9px;left:50%;transform:translateX(-50%);
+    background:var(--bg);padding:0 8px;font-size:0.6rem;color:var(--muted);
+  }
+
+  .devices{
+    display:grid;grid-template-columns:repeat(4,1fr);gap:10px;
+    margin:14px 0 24px;
+  }
+  @media(max-width:640px){ .devices{grid-template-columns:repeat(2,1fr);} }
+
+  .box{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:6px;
+    padding:12px 12px;
+    font-size:0.72rem;
+    text-align:center;
+  }
+  .box .name{font-weight:600;margin-bottom:4px;}
+  .box .ip{color:var(--muted);font-size:0.64rem;font-family:inherit;margin-bottom:6px;}
+  .box .desc{color:var(--muted);font-size:0.62rem;line-height:1.45;}
+
+  .box.cp{border-color:var(--cp);}
+  .box.node{border-color:var(--node);}
+  .box.nas{border-color:var(--nas);}
+
+  .role-tag{
+    display:inline-block;font-size:0.56rem;text-transform:uppercase;
+    letter-spacing:0.06em;color:var(--muted);margin-bottom:6px;
+  }
+
+  .overlay-section{
+    margin-top:30px;padding-top:20px;border-top:1px dashed var(--line);
+  }
+  .overlay-title{font-size:0.62rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);margin-bottom:10px;}
+  .overlay-box{
+    border:1px dashed var(--overlay);
+    border-radius:8px;
+    padding:14px;
+    font-size:0.7rem;
+    color:var(--muted);
+    text-align:center;
+  }
+  .overlay-box b{color:var(--text);}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Homelab: physical + network layout</h1>
+  <p class="sub">3 ThinkCentre M710s, one NAS, one home network — dakin.im's LAN side</p>
+
+  <div class="legend">
+    <span><span class="dot" style="background:var(--cp)"></span>Control plane</span>
+    <span><span class="dot" style="background:var(--node)"></span>Worker node</span>
+    <span><span class="dot" style="background:var(--nas)"></span>NAS / storage</span>
+    <span><span class="dot" style="background:var(--overlay)"></span>Overlay network (not physical)</span>
+  </div>
+
+  <div class="net-band">Internet ← your ISP</div>
+  <div class="connector"></div>
+  <div class="net-band"><b>UniFi Cloud Gateway</b> — router, NAT, DHCP, no ports forwarded inbound</div>
+  <div class="connector"></div>
+
+  <div class="devices" style="grid-template-columns:1fr 1fr;margin-bottom:4px;">
+    <div class="box" style="border-color:var(--net);">
+      <div class="role-tag">Wired</div>
+      <div class="name">Gateway's built-in switch ports</div>
+      <div class="desc">PC1 / PC2 / PC3 / NAS, all wired</div>
+    </div>
+    <div class="box" style="border-color:var(--net);">
+      <div class="role-tag">Wireless</div>
+      <div class="name">UniFi Express</div>
+      <div class="desc">Wi-Fi AP — your phone/laptop when on home WiFi</div>
+    </div>
+  </div>
+  <div class="connector"></div>
+  <div class="net-band"><b>Same LAN either way</b> — 10.70.5.0/24</div>
+
+  <div class="lan-line"><span class="tag">everything below is one flat LAN segment</span></div>
+
+  <div class="devices">
+    <div class="box cp">
+      <div class="role-tag">Control plane</div>
+      <div class="name">PC1</div>
+      <div class="ip">Talos Linux</div>
+      <div class="desc">etcd, apiserver — dedicated, no workloads scheduled here</div>
+    </div>
+    <div class="box node">
+      <div class="role-tag">Worker</div>
+      <div class="name">PC2</div>
+      <div class="ip">Talos + i915 + nfsd</div>
+      <div class="desc">Quick Sync transcoding, NFS client extensions baked in</div>
+    </div>
+    <div class="box node">
+      <div class="role-tag">Worker</div>
+      <div class="name">PC3</div>
+      <div class="ip">Talos + i915 + nfsd</div>
+      <div class="desc">Same worker image as PC2 — either can run any app pod</div>
+    </div>
+    <div class="box nas">
+      <div class="role-tag">Storage</div>
+      <div class="name">NAS</div>
+      <div class="ip">10.70.5.185</div>
+      <div class="desc">NFS export — media, photos, Postgres/Prometheus/Loki data</div>
+    </div>
+  </div>
+
+  <div class="net-band" style="max-width:340px;margin:0 auto;">
+    <b>10.70.5.90</b> — Cilium-announced LoadBalancer IP<br>
+    <span style="font-size:0.62rem;">L2/ARP, lives on whichever node Cilium picks — not tied to one PC</span>
+  </div>
+
+  <div class="overlay-section">
+    <div class="overlay-title">Not physical — logical overlay on top of the same 3 nodes</div>
+    <div class="overlay-box">
+      <b>Tailscale mesh</b><br>
+      Connects your phone/laptop directly to cluster services, wherever you physically are —
+      doesn't care which PC or which room anything is in
+    </div>
+  </div>
+</div>
+</body>
+</html>

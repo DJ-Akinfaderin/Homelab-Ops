@@ -1,0 +1,35 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: cluster-ops
+  namespace: monitoring
+  labels:
+    release: kube-prometheus-stack
+spec:
+  groups:
+    - name: cluster-ops
+      rules:
+        - alert: RenovateJobFailing
+          expr: kube_job_status_failed{namespace="renovate", job_name=~"renovate-.*"} > 0
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Renovate's last run failed"
+            description: "The most recent Renovate job in the renovate namespace failed — dependency PRs (including Talos/K8s version bumps via tuppr) have stopped flowing until this is fixed."
+
+        - alert: RenovateJobStale
+          expr: time() - kube_cronjob_status_last_successful_time{namespace="renovate", cronjob="renovate"} > 172800
+          labels:
+            severity: warning
+          annotations:
+            summary: "Renovate hasn't completed successfully in 48h+"
+            description: "Check the CronJob directly — kubectl get jobs -n renovate — since this can mean the schedule itself stopped firing, not just a failed run."
+
+        - alert: CertificateExpiringSoon
+          expr: (certmanager_certificate_expiration_timestamp_seconds - time()) / 86400 < 14
+          labels:
+            severity: warning
+          annotations:
+            summary: "A cert-manager certificate expires within 14 days"
+            description: "{{ $labels.name }} in namespace {{ $labels.exported_namespace }} is close to expiry and hasn't renewed — check cert-manager's logs and the Certificate/Order/Challenge resources for what's blocking it."

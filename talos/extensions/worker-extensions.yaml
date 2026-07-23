@@ -1,0 +1,20 @@
+# Submitted to https://factory.talos.dev/schematics to get a worker
+# installer image with Intel Quick Sync (i915) support baked in, AND NFS
+# client kernel modules (nfsd) — required for any pod on these nodes to
+# mount an NFS-backed PVC at all. Talos's minimal image does not include
+# NFS client support by default; without this extension, every
+# nfs-client-backed PVC (Jellyfin, Immich, Prometheus/Grafana, etcd
+# backups) fails to mount with a MountVolume.SetUp error.
+#
+# Only needed on PC2 / PC3 — the control plane is tainted against
+# scheduling workload pods, so it never needs to mount application PVCs.
+#
+# If your NAS serves NFSv3 (rather than v4) and you hit file-locking
+# errors specifically (as opposed to mount failures), you may also need
+# an rpcbind/rpc.statd extension — check `talosctl get extensions` against
+# your actual NFS version before assuming this is sufficient.
+customization:
+  systemExtensions:
+    officialExtensions:
+      - siderolabs/i915
+      - siderolabs/nfsd
