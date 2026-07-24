@@ -1,0 +1,42 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended", ":dependencyDashboard"],
+  "timezone": "UTC",
+  "schedule": ["after 2am and before 5am"],
+  "labels": ["dependencies", "renovate"],
+
+  "flux": {
+    "managerFilePatterns": [
+      "/(^|/)infrastructure/.+\\.ya?ml$/",
+      "/(^|/)apps/.+\\.ya?ml$/",
+      "/(^|/)clusters/.+\\.ya?ml$/"
+    ]
+  },
+  "kubernetes": {
+    "managerFilePatterns": [
+      "/(^|/)apps/base/.+\\.ya?ml$/"
+    ]
+  },
+
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "Picks up tuppr's TalosUpgrade/KubernetesUpgrade CRs via their renovate comment markers",
+      "managerFilePatterns": [
+        "/(^|/)infrastructure/tuppr/.+\\.ya?ml$/"
+      ],
+      "matchStrings": [
+        "# renovate: datasource=(?<datasource>.*?) depName=(?<depName>.*?)\\s+version: (?<currentValue>.*)"
+      ]
+    }
+  ],
+  "packageRules": [
+    {
+      "description": "Talos upgrades must step through each minor version sequentially — never batch these PRs, merge one at a time in order",
+      "matchDatasources": ["docker"],
+      "matchPackageNames": ["ghcr.io/siderolabs/installer"],
+      "separateMajorMinor": true,
+      "separateMinorPatch": true
+    }
+  ]
+}

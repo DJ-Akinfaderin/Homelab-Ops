@@ -1,0 +1,18 @@
+# To protect another app with Authelia later: add a `domain:` rule for it
+# in authelia/release.yaml's access_control.rules, then add this same
+# annotation to that app's Ingress:
+#   traefik.ingress.kubernetes.io/router.middlewares: authelia-authelia@kubernetescrd
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: authelia
+  namespace: authelia
+spec:
+  forwardAuth:
+    address: "http://authelia.authelia.svc.cluster.local/api/authz/forward-auth"
+    trustForwardHeader: true
+    authResponseHeaders:
+      - Remote-User
+      - Remote-Groups
+      - Remote-Email
+      - Remote-Name

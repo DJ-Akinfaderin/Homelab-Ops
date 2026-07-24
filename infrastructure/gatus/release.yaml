@@ -1,0 +1,113 @@
+# Blackbox monitoring — actually requests the real URLs a person would
+# use, unlike the Prometheus alerts (JellyfinDown, ImmichServerDown) which
+# only check Kubernetes' view of pod health. This catches failures those
+# can't: a broken Traefik route, DNS not resolving, or (usefully, given
+# the cert-manager wildcard setup) an actually-expired certificate as
+# experienced by a real client — not just cert-manager's internal state,
+# which is what CertificateExpiringSoon checks instead. Genuinely
+# complementary, not redundant.
+#
+# Also includes one non-app check: the Kubernetes API server's own
+# internal certificate (see the kube-apiserver-cert endpoint below) — a
+# live canary on Talos's automatic PKI rotation, rather than just trusting
+# it silently.
+#
+# Field names in alerting.pushover and endpoints[].alerts follow Gatus's
+# documented config shape as of the version pinned below — this is a
+# smaller, more stable project than some others in this repo, but worth a
+# quick check against https://github.com/TwiN/gatus#configuration if
+# alerts don't fire as expected.
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: gatus
+  namespace: monitoring
+spec:
+  interval: 1h
+  chart:
+    spec:
+      chart: gatus
+      version: ">=3.0.0 <4.0.0"
+      sourceRef:
+        kind: HelmRepository
+        name: twin
+  values:
+    envFrom:
+      - secretRef:
+          name: gatus-pushover-credentials
+
+    persistence:
+      enabled: true
+      storageClassName: nfs-client
+      size: 1Gi
+
+    resources:
+      requests:
+        cpu: 25m
+        memory: 32Mi
+      limits:
+        memory: 128Mi
+
+    config:
+      storage:
+        type: sqlite
+        path: /data/data.db
+
+      alerting:
+        pushover:
+          application-token: "${PUSHOVER_APPLICATION_TOKEN}"
+          user-key: "${PUSHOVER_USER_KEY}"
+          priority: 0
+          default-alert:
+            enabled: true
+            failure-threshold: 3    # 3 consecutive failed checks before alerting — avoids paging on a single blip
+            success-threshold: 2
+            send-on-resolved: true
+
+      endpoints:
+        - name: jellyfin
+          url: "https://jellyfin.home.dakin.im"
+          interval: 1m
+          conditions:
+            - "[STATUS] == 200"
+            - "[CERTIFICATE_EXPIRATION] > 336h"   # 14 days — same threshold as the CertificateExpiringSoon Prometheus alert
+          alerts:
+            - type: pushover
+
+        - name: immich
+          url: "https://immich.home.dakin.im"
+          interval: 1m
+          conditions:
+            - "[STATUS] == 200"
+            - "[CERTIFICATE_EXPIRATION] > 336h"
+          alerts:
+            - type: pushover
+
+        - name: grafana
+          url: "http://kube-prometheus-stack-grafana.monitoring.svc.cluster.local"
+          interval: 2m
+          conditions:
+            - "[STATUS] == 200"
+          alerts:
+            - type: pushover
+
+        # Checks the cluster's own internal PKI, not an app cert — Talos
+        # auto-rotates the apiserver's certificate, but this is a live
+        # canary confirming that's actually still true, rather than just
+        # trusting it silently. client.insecure is required here: the
+        # apiserver's cert is signed by Talos's internal cluster CA, which
+        # isn't in any public trust store, so the TLS handshake itself
+        # would otherwise fail before [CERTIFICATE_EXPIRATION] ever gets
+        # evaluated. This is the intentional exception to "always verify
+        # certs" in this repo — the point of this specific check IS to
+        # read the certificate, not to validate a trust chain that will
+        # never be public.
+        - name: kube-apiserver-cert
+          url: "https://kubernetes.default.svc"
+          interval: 1h
+          client:
+            insecure: true
+          conditions:
+            - "[CERTIFICATE_EXPIRATION] > 720h"   # 30 days — longer warning window than app certs, since a lapse here is more disruptive
+          alerts:
+            - type: pushover

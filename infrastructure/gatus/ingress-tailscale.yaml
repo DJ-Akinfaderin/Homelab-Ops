@@ -1,0 +1,22 @@
+# Same reasoning as Capacitor: a status dashboard listing every app and
+# its health is useful internal information, not something to expose on
+# the LAN-facing Traefik path. Private-only via Tailscale.
+#
+# Assumes the chart creates a Service named "gatus" on port 8080 (default
+# per the chart's own docs) — verify with `kubectl get svc -n monitoring`
+# after first install.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: gatus-tailscale
+  namespace: monitoring
+spec:
+  ingressClassName: tailscale
+  defaultBackend:
+    service:
+      name: gatus
+      port:
+        number: 8080
+  tls:
+    - hosts:
+        - gatus   # becomes gatus.<your-tailnet-name>.ts.net

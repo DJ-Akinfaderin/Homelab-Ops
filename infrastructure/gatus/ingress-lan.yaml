@@ -1,0 +1,35 @@
+# LAN route, in addition to (not instead of) the Tailscale ingress in
+# ingress-tailscale.yaml — both can point at the same Service at once.
+# No cert-manager annotation needed here: Traefik already uses the
+# cert-manager wildcard cert as its default certificate
+# (infrastructure/traefik/release.yaml's tlsStore.default.defaultCertificate),
+# so any Ingress routed through it picks up HTTPS automatically.
+#
+# router.middlewares annotation routes this through Authelia first — the
+# Middleware lives in the authelia namespace, this Ingress lives in
+# monitoring, which needs allowCrossNamespace enabled on Traefik (see
+# infrastructure/traefik/release.yaml) or this annotation is silently
+# ignored.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: gatus-lan
+  namespace: monitoring
+  annotations:
+    traefik.ingress.kubernetes.io/router.middlewares: authelia-authelia@kubernetescrd
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: gatus.home.dakin.im
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: gatus
+                port:
+                  number: 8080
+  tls:
+    - hosts:
+        - gatus.home.dakin.im

@@ -1,0 +1,67 @@
+# The `release: kube-prometheus-stack` label below isn't decorative — the
+# chart's Prometheus only watches PrometheusRules carrying that exact label
+# by default (ruleSelectorNilUsesHelmValues). Miss it and these rules get
+# silently ignored, same class of "looks applied but isn't" gotcha as the
+# Alertmanager config — worth checking Prometheus's Status > Rules page
+# after this reconciles to confirm they actually loaded.
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: media-apps
+  namespace: monitoring
+  labels:
+    release: kube-prometheus-stack
+spec:
+  groups:
+    - name: media-apps
+      rules:
+        - alert: JellyfinDown
+          expr: kube_deployment_status_replicas_available{namespace="media", deployment="jellyfin"} == 0
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Jellyfin is down"
+            description: "Jellyfin has had 0 available replicas for 5+ minutes."
+
+        - alert: ImmichServerDown
+          # Assumes the chart's Deployment is named "immich-server" (current
+          # convention as of the chart version pinned in apps/base/immich).
+          # Verify with `kubectl get deploy -n media` after first deploy —
+          # bjw-s common-library-based charts have changed generated names
+          # between versions before.
+          expr: kube_deployment_status_replicas_available{namespace="media", deployment="immich-server"} == 0
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Immich server is down"
+            description: "Immich's server deployment has had 0 available replicas for 5+ minutes."
+
+        - alert: MediaLibraryPVCNearlyFull
+          expr: |
+            (
+              kubelet_volume_stats_available_bytes{namespace="media", persistentvolumeclaim="media-library"}
+              /
+              kubelet_volume_stats_capacity_bytes{namespace="media", persistentvolumeclaim="media-library"}
+            ) * 100 < 10
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Media library storage nearly full"
+            description: "The shared Jellyfin media-library NFS volume has less than 10% free space."
+
+        - alert: ImmichLibraryPVCNearlyFull
+          expr: |
+            (
+              kubelet_volume_stats_available_bytes{namespace="media", persistentvolumeclaim="immich-library"}
+              /
+              kubelet_volume_stats_capacity_bytes{namespace="media", persistentvolumeclaim="immich-library"}
+            ) * 100 < 10
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Immich library storage nearly full"
+            description: "The Immich photo library NFS volume has less than 10% free space."

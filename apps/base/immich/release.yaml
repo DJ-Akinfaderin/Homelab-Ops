@@ -1,0 +1,124 @@
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: immich
+  namespace: media
+spec:
+  interval: 1h
+  chart:
+    spec:
+      chart: immich
+      version: ">=0.9.0 <1.0.0"
+      sourceRef:
+        kind: HelmRepository
+        name: immich
+  values:
+    immich:
+      persistence:
+        library:
+          existingClaim: immich-library   # from pvc.yaml — points at the NAS
+
+    # Machine learning (face/object detection) is the heaviest single piece
+    # of this whole stack on 8GB workers — start it disabled, turn on once
+    # you've confirmed everything else is stable.
+    machine-learning:
+      enabled: false
+      resources:
+        requests:
+          cpu: 250m
+          memory: 512Mi
+        limits:
+          memory: 2Gi
+
+    server:
+      # Private remote access via the Tailscale operator — same mechanism as
+      # Jellyfin's ingress-tailscale.yaml. Verify this exact key path against
+      # `helm show values immich/immich` for the chart version pinned above;
+      # the official chart nests ingress under the server component, but the
+      # precise path can shift between chart releases.
+      #
+      # Two named ingress blocks (main, lan) rather than one — this relies
+      # on the bjw-s common-library convention of supporting multiple named
+      # ingresses per component. Same "verify after first deploy" caveat as
+      # above applies here too; if `lan` doesn't render, check
+      # `helm show values` for whether multiple ingress blocks are actually
+      # supported at this chart version, and fall back to a standalone
+      # Ingress resource (same pattern as jellyfin/ingress-lan.yaml) if not.
+      ingress:
+        main:
+          enabled: true
+          ingressClassName: tailscale
+          hosts:
+            - host: immich   # becomes immich.<your-tailnet-name>.ts.net
+              paths:
+                - path: "/"
+                  service:
+                    identifier: main
+        lan:
+          enabled: true
+          ingressClassName: traefik
+          # No Authelia here, deliberately — Immich already has its own
+          # login/user accounts, same reasoning as Jellyfin.
+          hosts:
+            - host: immich.home.dakin.im
+              paths:
+                - path: "/"
+                  service:
+                    identifier: main
+          tls:
+            - hosts:
+                - immich.home.dakin.im
+      resources:
+        requests:
+          cpu: 100m
+          memory: 256Mi
+        limits:
+          memory: 768Mi
+
+    postgresql:
+      resources:
+        requests:
+          cpu: 100m
+          memory: 256Mi
+        limits:
+          memory: 512Mi
+
+  # The chart has no values.yaml option for mounting an arbitrary extra
+  # volume (open feature request against immich-charts, unresolved as of
+  # the version pinned above) — so this patches it into the rendered
+  # Deployment directly. Mounts your NAS's existing /photos/Public folder
+  # (see external-library-pv.yaml) read-only at /mnt/library/public.
+  #
+  # This mount alone doesn't make Immich use it — you still need to create
+  # the External Library pointing at this exact path. That step is UI-only,
+  # not expressible as YAML: Administration -> External Libraries ->
+  # Create Library -> Import Path: /mnt/library/public -> Scan.
+  #
+  # Verify the target Deployment name after first install
+  # (`kubectl get deploy -n media`) — assumed "immich-server" per the
+  # chart's current bjw-s-based naming convention, same caveat as the
+  # ingress config above.
+  postRenderers:
+    - kustomize:
+        patches:
+          - target:
+              kind: Deployment
+              name: immich-server
+            patch: |
+              apiVersion: apps/v1
+              kind: Deployment
+              metadata:
+                name: immich-server
+              spec:
+                template:
+                  spec:
+                    containers:
+                      - name: immich-server
+                        volumeMounts:
+                          - name: external-public-photos
+                            mountPath: /mnt/library/public
+                            readOnly: true
+                    volumes:
+                      - name: external-public-photos
+                        persistentVolumeClaim:
+                          claimName: immich-external-public-photos

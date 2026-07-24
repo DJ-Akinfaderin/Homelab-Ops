@@ -1,0 +1,16 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../base/media-shared
+  - ../../base/jellyfin
+  - ../../base/immich    # remove this line to disable Immich
+
+# Quick Sync GPU access — only Jellyfin needs it now.
+patches:
+  - target:
+      kind: Deployment
+      name: jellyfin
+    patch: |
+      - op: add
+        path: /spec/template/spec/containers/0/resources/limits/gpu.intel.com~1i915
+        value: "1"

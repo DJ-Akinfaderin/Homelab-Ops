@@ -1,0 +1,22 @@
+# A separate top-level entry point rather than nesting inside
+# infrastructure/kustomization.yaml — Capacitor's OCI artifact is meant to
+# be reconciled directly by a Flux Kustomization, not run through a kustomize
+# build alongside Helm-based resources. The artifact should bundle its own
+# namespace/RBAC/Deployment/Service — verify with `flux get kustomizations`
+# after first reconcile that all of those actually landed; if the RBAC
+# didn't come bundled, it's documented separately at
+# https://github.com/gimlet-io/capacitor under deploy/k8s/rbac.yaml.
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: capacitor
+  namespace: flux-system
+spec:
+  interval: 1h
+  sourceRef:
+    kind: OCIRepository
+    name: capacitor
+  path: ./
+  prune: true
+  wait: true
+  timeout: 5m

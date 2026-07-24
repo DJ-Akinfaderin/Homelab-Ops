@@ -1,0 +1,91 @@
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: kube-prometheus-stack
+  namespace: monitoring
+spec:
+  interval: 1h
+  chart:
+    spec:
+      chart: kube-prometheus-stack
+      version: ">=65.0.0 <66.0.0"
+      sourceRef:
+        kind: HelmRepository
+        name: prometheus-community
+  values:
+    prometheus:
+      prometheusSpec:
+        retention: 7d          # short retention keeps disk/RAM use down
+        resources:
+          requests:
+            cpu: 100m
+            memory: 512Mi
+          limits:
+            memory: 1Gi
+        storageSpec:
+          volumeClaimTemplate:
+            spec:
+              storageClassName: nfs-client
+              resources:
+                requests:
+                  storage: 20Gi
+    grafana:
+      resources:
+        requests:
+          cpu: 50m
+          memory: 128Mi
+        limits:
+          memory: 256Mi
+      persistence:
+        enabled: true
+        storageClassName: nfs-client
+        size: 2Gi
+      additionalDataSources:
+        - name: Loki
+          type: loki
+          url: http://loki-gateway.monitoring.svc.cluster.local
+          access: proxy
+    alertmanager:
+      enabled: true
+      alertmanagerSpec:
+        resources:
+          requests:
+            cpu: 25m
+            memory: 64Mi
+          limits:
+            memory: 128Mi
+        storage:
+          volumeClaimTemplate:
+            spec:
+              storageClassName: nfs-client
+              resources:
+                requests:
+                  storage: 1Gi
+        # Mounts infra/monitoring/README.md's secret into the pod at
+        # /etc/alertmanager/secrets/alertmanager-pushover-credentials/{user_key,token}
+        # so the *_file fields below can read it instead of the raw
+        # values being sitting in this HelmRelease.
+        secrets:
+          - alertmanager-pushover-credentials
+      config:
+        global:
+          resolve_timeout: 5m
+        route:
+          receiver: pushover
+          group_by: ["alertname", "namespace"]
+          group_wait: 30s
+          group_interval: 5m
+          repeat_interval: 4h
+        receivers:
+          - name: pushover
+            pushover_configs:
+              - user_key_file: /etc/alertmanager/secrets/alertmanager-pushover-credentials/user_key
+                token_file: /etc/alertmanager/secrets/alertmanager-pushover-credentials/token
+                title: '[{{ .Status | toUpper }}] {{ .GroupLabels.alertname }}'
+                message: '{{ range .Alerts }}{{ .Annotations.summary }}{{ "\n" }}{{ .Annotations.description }}{{ "\n" }}{{ end }}'
+                # critical -> Pushover "high priority" (bypasses phone quiet hours);
+                # everything else -> normal. Deliberately not using priority 2
+                # (emergency/retry-until-acked) — overkill for a homelab and
+                # there's a known kube-prometheus-stack chart bug rendering
+                # the retry/expire duration fields without units when set.
+                priority: '{{ if eq .CommonLabels.severity "critical" }}1{{ else }}0{{ end }}'

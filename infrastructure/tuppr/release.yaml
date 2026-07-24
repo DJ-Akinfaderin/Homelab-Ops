@@ -1,0 +1,27 @@
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: tuppr
+  namespace: kube-system-upgrade
+spec:
+  interval: 1h
+  chart:
+    spec:
+      chart: tuppr
+      sourceRef:
+        kind: HelmRepository
+        name: tuppr
+  values:
+    controller:
+      leaderElection:
+        enabled: true
+    rbac:
+      create: true
+    # Admission webhook validates TalosUpgrade/KubernetesUpgrade CRs on
+    # creation, but needs cert-manager for its TLS cert — which isn't in
+    # this stack. Left off to avoid pulling in a new dependency just for
+    # this; the controller works fine without it, you just lose CR-level
+    # input validation. Revisit if cert-manager gets added for other
+    # reasons later.
+    webhook:
+      enabled: false

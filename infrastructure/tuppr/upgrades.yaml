@@ -1,0 +1,32 @@
+# Renovate watches the version fields below (via the customManagers entry
+# in renovate.json) and opens a PR whenever a new Talos/Kubernetes release
+# is out. The separateMajorMinor/separateMinorPatch packageRule for the
+# installer image means each PR is exactly one version step — merge them
+# IN ORDER, one at a time. Batch-merging or skipping one out of sequence
+# can put the cluster on an unsupported upgrade path (see tuppr's own
+# docs: it does not check this for you).
+apiVersion: tuppr.home-operations.com/v1alpha1
+kind: TalosUpgrade
+metadata:
+  name: cluster
+spec:
+  talos:
+    # renovate: datasource=docker depName=ghcr.io/siderolabs/installer
+    version: v1.13.6   # set to whatever you actually bootstrapped with
+  policy:
+    debug: false
+    force: false          # don't skip etcd health checks
+    rebootMode: default
+    placement: hard
+    priorityClassName: system-node-critical
+    stage: false
+    timeout: 30m
+---
+apiVersion: tuppr.home-operations.com/v1alpha1
+kind: KubernetesUpgrade
+metadata:
+  name: kubernetes
+spec:
+  kubernetes:
+    # renovate: datasource=docker depName=ghcr.io/siderolabs/kubelet
+    version: v1.36.2   # set to whatever you actually bootstrapped with

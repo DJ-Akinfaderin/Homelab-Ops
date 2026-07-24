@@ -1,0 +1,24 @@
+# Gives Cilium a pool of IPs to hand out to LoadBalancer-type Services
+# (Traefik being the main consumer) on your home LAN, and tells it to
+# announce them via L2 (ARP) — no router/BGP config needed.
+apiVersion: cilium.io/v2alpha1
+kind: CiliumLoadBalancerIPPool
+metadata:
+  name: homelab-pool
+spec:
+  blocks:
+    # Single address, since Traefik is currently the only LoadBalancer-type
+    # Service in this cluster. If you add another one later (a second
+    # ingress, a database exposed directly, etc.), widen this to a small
+    # range instead — e.g. 10.70.5.90/29 — since a /32 pool only has one
+    # address to hand out.
+    - cidr: 10.70.5.90/32
+---
+apiVersion: cilium.io/v2alpha1
+kind: CiliumL2AnnouncementPolicy
+metadata:
+  name: homelab-l2
+spec:
+  interface: eth0
+  externalIPs: true
+  loadBalancerIPs: true

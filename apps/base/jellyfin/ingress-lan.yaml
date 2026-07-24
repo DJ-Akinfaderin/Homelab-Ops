@@ -1,0 +1,26 @@
+# No Authelia middleware here, deliberately — Jellyfin already has its
+# own login/user accounts, so stacking Authelia on top would just mean
+# logging in twice for no real security gain. That's a real, different
+# reasoning than the LAN ingress for Jellyfin simply not existing before
+# (which was "Tailscale only" — this is "LAN is fine, but bare").
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: jellyfin-lan
+  namespace: media
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: jellyfin.home.dakin.im
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: jellyfin
+                port:
+                  number: 8096
+  tls:
+    - hosts:
+        - jellyfin.home.dakin.im

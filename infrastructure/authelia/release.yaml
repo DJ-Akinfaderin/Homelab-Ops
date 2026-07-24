@@ -1,0 +1,103 @@
+# Uses external CNPG Postgres (config.storage.postgres below) rather than
+# the chart's bundled Bitnami subchart — postgresql.enabled stays false,
+# on purpose, since authelia-postgres in this same folder is the real
+# database.
+#
+# Genuine uncertainty flag: the exact mechanism the chart uses to wire
+# secrets.existingSecret into config.yml's ${...} placeholders is
+# something I'm reasonably but not fully confident about — it's a
+# well-established Authelia convention (the app itself natively supports
+# _FILE-suffixed env vars for every sensitive value, and the chart wraps
+# that), but worth confirming pods actually start clean rather than
+# assuming from this file alone.
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: authelia
+  namespace: authelia
+spec:
+  interval: 1h
+  chart:
+    spec:
+      chart: authelia
+      version: ">=0.9.0 <1.0.0"
+      sourceRef:
+        kind: HelmRepository
+        name: authelia
+  values:
+    secrets:
+      existingSecret: authelia-core-secrets   # jwtSecret, sessionSecret, storageEncryptionKey
+
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        memory: 256Mi
+
+    ingress:
+      enabled: true
+      ingressClassName: traefik
+      hosts:
+        - host: auth.home.dakin.im
+          paths:
+            - path: /
+              pathType: Prefix
+
+    config:
+      session:
+        cookies:
+          - domain: home.dakin.im
+            authelia_url: "https://auth.home.dakin.im"
+            default_redirection_url: "https://auth.home.dakin.im"
+
+      # File-based auth — no LDAP to run for a homelab. Password hashes
+      # live in the synced users_database.yml, not here.
+      authentication_backend:
+        file:
+          path: /config/users_database.yml
+
+      access_control:
+        default_policy: deny
+        rules:
+          - domain: "gatus.home.dakin.im"
+            policy: two_factor
+          - domain: "capacitor.home.dakin.im"
+            policy: two_factor
+          # Add more `domain:` rules here as you put more apps behind
+          # Authelia — each also needs the Traefik middleware annotation,
+          # see middleware.yaml's comment.
+
+      # Filesystem notifier — writes notifications (password reset links,
+      # 2FA registration confirmations) to a local file instead of
+      # sending real email, since there's no SMTP server in this stack.
+      # Fine to start with; switch to config.notifier.smtp later if you
+      # want actual emails.
+      notifier:
+        filesystem:
+          filename: /config/notifications.txt
+
+      storage:
+        postgres:
+          address: "authelia-postgres-rw.authelia.svc.cluster.local:5432"   # CNPG's auto-created read-write service
+          database: authelia
+          username: authelia
+          # password comes from authelia-postgres-credentials via the
+          # chart's secret-templating — see the uncertainty note at the
+          # top of this file.
+
+    persistence:
+      enabled: true
+      storageClassName: nfs-client
+      size: 1Gi
+
+    volumeMounts:
+      - name: users-database
+        mountPath: /config/users_database.yml
+        subPath: users_database.yml
+        readOnly: true
+
+    volumes:
+      - name: users-database
+        secret:
+          secretName: authelia-users-database
