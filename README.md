@@ -74,8 +74,8 @@ clusters/homelab/     Flux Kustomizations (entry points)
 infrastructure/        Cilium, Traefik, NFS storage, monitoring, Tailscale,
                         Renovate, Harness Delegate, Tuppr, cert-manager,
                         Capacitor, etcd backups, External Secrets,
-                        Loki + Alloy (logs), Gatus (uptime), CloudNativePG,
-                        Authelia (SSO)
+                        VictoriaLogs + Alloy (logs), Gatus (uptime),
+                        CloudNativePG, Authelia (SSO)
 apps/base/              One folder per app
 apps/overlays/production/  Toggles which apps are enabled + per-app patches
 ```
@@ -94,22 +94,29 @@ set up for Alertmanager, no new secret needed. Status page is
 Tailscale-only (`gatus.<tailnet>.ts.net`) — same reasoning as Capacitor,
 a dashboard listing every app and its health isn't LAN-public information.
 
-## A note on Loki + Alloy (logging)
+## A note on VictoriaLogs + Alloy (logging)
 Not Promtail — it hit end-of-life on March 2, 2026 (no security patches,
 no bug fixes). **Grafana Alloy** (via the `k8s-monitoring` chart) is the
 current replacement, running as a DaemonSet on all 3 nodes — including
 the tainted control plane, deliberately, since that node's logs matter
 given it's your single point of failure. It discovers every pod through
 the Kubernetes API automatically, so "logs from all applications" needs
-no per-app configuration. Loki runs in monolithic mode (appropriate at
-homelab scale) storing to the same NFS-backed storage everything else
-uses, 14-day retention to match the pattern already used for Prometheus.
-Logs show up in the same Grafana you already have, as a new datasource —
-no second dashboard to check.
+no per-app configuration.
 
-Also worth knowing: the official Loki Helm chart moved to a new
-community-maintained repository on March 16, 2026 — `helm-repositories.yaml`
-points at the new location, not the old `grafana.github.io` one.
+This originally ran on Loki, switched to **VictoriaLogs** after a real
+incident: Loki's chart shipped a memcached cache sub-component with a
+~9.8Gi default memory request — bigger than an entire 8GB node — which
+permanently blocked scheduling and cascaded into blocking Grafana and
+Prometheus too, since they share the same NFS provisioner dependency
+chain. VictoriaLogs is a single binary with no equivalent sub-components
+to carry a similar surprise default, and per its own docs auto-tunes
+resource usage to what's actually available rather than shipping
+hardcoded production-scale defaults. Alloy ships logs to it using Loki's
+own wire format (`/insert/loki/api/v1/push`) — VictoriaLogs accepts this
+natively, so the collector side barely changed, only the destination URL
+did. Grafana needs one extra piece Loki didn't: the
+`victoriametrics-logs-datasource` plugin, since VictoriaLogs isn't a
+built-in Grafana datasource type the way Loki is.
 
 ## Secrets: Infisical + External Secrets Operator
 Every secret below used to be a separate manual `kubectl create secret`

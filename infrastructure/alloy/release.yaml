@@ -24,24 +24,32 @@ spec:
     cluster:
       name: homelab
 
+    # Points at VictoriaLogs, not Loki — type stays "loki" since Alloy is
+    # still sending in Loki's wire format, VictoriaLogs just accepts it
+    # natively on this endpoint (confirmed against VictoriaLogs' own data
+    # ingestion docs). Service name assumes the chart's default naming
+    # convention (<release-name>-victoria-logs-single-server) — verify
+    # with `kubectl get svc -n monitoring` after first deploy, same
+    # caveat as everywhere else a chart's exact generated names are
+    # assumed rather than confirmed.
     destinations:
-      - name: loki
+      - name: victorialogs
         type: loki
-        url: http://loki-gateway.monitoring.svc.cluster.local/loki/api/v1/push
+        url: http://victorialogs-victoria-logs-single-server.monitoring.svc.cluster.local:9428/insert/loki/api/v1/push
 
     # This is the actual answer to "scrape logs from all applications" —
     # discovers every pod via the Kubernetes API, no per-app config.
     podLogsViaLoki:
       enabled: true
-      destinations: ["loki"]
+      destinations: ["victorialogs"]
 
     # Bonus, same collector: Kubernetes Events (OOMKills, failed
-    # schedules, image pull errors) land in Loki too, queryable
+    # schedules, image pull errors) land in VictoriaLogs too, queryable
     # alongside pod logs rather than only living in `kubectl get events`'
     # short retention window.
     clusterEvents:
       enabled: true
-      destinations: ["loki"]
+      destinations: ["victorialogs"]
 
     # Alloy runs as a DaemonSet by default — this just makes sure that
     # includes the control-plane node (PC1), which is otherwise tainted

@@ -89,20 +89,8 @@ spec:
   interval: 1h
   url: https://charts.external-secrets.io
 ---
-# Moved from grafana/helm-charts to this community-maintained repo on
-# March 16, 2026 — Grafana Labs handed off chart maintenance. Don't use
-# the old grafana.github.io URL for Loki specifically; it's stale now.
-apiVersion: source.toolkit.fluxcd.io/v1
-kind: HelmRepository
-metadata:
-  name: grafana-community
-  namespace: monitoring
-spec:
-  interval: 1h
-  url: https://grafana-community.github.io/helm-charts
----
-# Unaffected by the Loki chart's move above — Alloy and k8s-monitoring
-# stay on Grafana Labs' own official repo.
+# Alloy and k8s-monitoring stay on Grafana Labs' own official repo — this
+# is unrelated to logging storage, only the collector.
 apiVersion: source.toolkit.fluxcd.io/v1
 kind: HelmRepository
 metadata:
@@ -138,3 +126,12 @@ metadata:
 spec:
   interval: 1h
   url: https://charts.authelia.com
+---
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmRepository
+metadata:
+  name: victoriametrics
+  namespace: monitoring
+spec:
+  interval: 1h
+  url: https://victoriametrics.github.io/helm-charts

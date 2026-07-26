@@ -19,7 +19,7 @@ resources:
   - traefik/release.yaml
   - storage/nfs-provisioner.yaml
   - monitoring/release.yaml
-  - loki/release.yaml
+  - victorialogs/release.yaml
   - alloy/release.yaml
   - gatus/release.yaml
   - gatus/ingress-tailscale.yaml

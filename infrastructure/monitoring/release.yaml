@@ -40,10 +40,18 @@ spec:
         enabled: true
         storageClassName: nfs-client
         size: 2Gi
+      # VictoriaLogs needs its own Grafana plugin — unlike Loki, which has
+      # a built-in Grafana datasource type, VictoriaLogs requires
+      # victoriametrics-logs-datasource to be installed for this
+      # datasource entry to actually be usable (confirmed against
+      # VictoriaMetrics' own Helm docs). Without the plugin line below,
+      # this datasource would exist but show as broken in the UI.
+      plugins:
+        - victoriametrics-logs-datasource
       additionalDataSources:
-        - name: Loki
-          type: loki
-          url: http://loki-gateway.monitoring.svc.cluster.local
+        - name: VictoriaLogs
+          type: victoriametrics-logs-datasource
+          url: http://victorialogs-victoria-logs-single-server.monitoring.svc.cluster.local:9428
           access: proxy
     alertmanager:
       enabled: true
