@@ -48,6 +48,7 @@ CNI yet. Don't troubleshoot this; it's step 2.
 
 Full detail: `README.md` steps 4–5.
 
+- [ ] `helm repo add cilium https://helm.cilium.io/ && helm repo update`
 - [ ] `helm install cilium cilium/cilium -n kube-system -f infrastructure/cilium/values.yaml`
       — nodes should flip to `Ready` within a minute or two
 - [ ] `flux bootstrap github --owner=<you> --repository=<repo> --path=clusters/homelab`

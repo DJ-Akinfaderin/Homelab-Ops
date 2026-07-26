@@ -1,42 +1,36 @@
+# PHASE 1: HelmReleases (which install CRDs) plus plain core Kubernetes
+# types (Namespace, ConfigMap, PVC, Deployment, Service, CronJob, Ingress).
+# Nothing in this file may reference a CRD installed by anything else in
+# this same file — that's exactly the bug that caused a full reconciliation
+# deadlock (see clusters/homelab/infrastructure.yaml's comment for the
+# full story). Custom resources that consume these CRDs live in
+# ../infrastructure-config/, a separate Flux Kustomization that only
+# starts once this one is confirmed healthy.
+#
+# Rule of thumb for where a new file goes: if its `kind` was invented by
+# one of the Helm charts below (not a stock Kubernetes type), it belongs
+# in infrastructure-config/, not here.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
   - sources/namespaces.yaml
   - sources/helm-repositories.yaml
   - cilium/release.yaml
-  - cilium/ippool.yaml
   - traefik/release.yaml
   - storage/nfs-provisioner.yaml
   - monitoring/release.yaml
-  - monitoring/external-secret.yaml
-  - monitoring/rules/media-apps.yaml
-  - monitoring/rules/cluster-ops.yaml
   - loki/release.yaml
   - alloy/release.yaml
-  - gatus/external-secret.yaml
   - gatus/release.yaml
   - gatus/ingress-tailscale.yaml
   - gatus/ingress-lan.yaml
   - cnpg/release.yaml
-  - authelia/external-secret-postgres.yaml
-  - authelia/postgres-cluster.yaml
-  - authelia/external-secret-core.yaml
-  - authelia/external-secret-users.yaml
   - authelia/release.yaml
-  - authelia/middleware.yaml
   - tailscale/release.yaml
-  - tailscale/external-secret.yaml
   - renovate/cronjob.yaml
-  - renovate/external-secret.yaml
   - harness/release.yaml
-  - harness/external-secret.yaml
   - tuppr/release.yaml
-  - tuppr/upgrades.yaml
-  - tuppr/external-secret.yaml
   - cert-manager/release.yaml
-  - cert-manager/external-secret.yaml
-  - cert-manager/cluster-issuer.yaml
-  - cert-manager/certificate.yaml
   - capacitor/ingress-tailscale.yaml
   - capacitor/ingress-lan.yaml
   - garage/config.yaml
@@ -44,4 +38,3 @@ resources:
   - garage/deployment.yaml
   - talos-backup/cronjob.yaml
   - external-secrets/release.yaml
-  - external-secrets/secretstore.yaml

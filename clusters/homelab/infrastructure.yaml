@@ -1,3 +1,13 @@
+# PHASE 1 of infrastructure — HelmReleases and CRD-safe core resources
+# only. Split into two Kustomizations (this one + infrastructure-config.yaml
+# below) after a real incident: putting CRD-installing HelmReleases and
+# the custom resources that depend on those CRDs in the same Kustomization
+# caused Flux to fail its dry-run validation across the WHOLE batch
+# whenever any one CRD wasn't registered yet — meaning nothing applied at
+# all, not just the resource with the problem. wait: true here is what
+# makes the dependsOn in infrastructure-config.yaml actually meaningful —
+# without it, "depends on this Kustomization" would only mean "applied
+# after," not "after the HelmReleases inside it are actually healthy."
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata:

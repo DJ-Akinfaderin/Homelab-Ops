@@ -1,0 +1,55 @@
+# Manual-bootstrap-only copy of the values already embedded in
+# release.yaml's spec.values — used for the one-time `helm install` before
+# Flux exists to apply release.yaml itself. Once Flux takes over (README.md
+# step 5), release.yaml's embedded values become the authoritative source
+# for ongoing reconciliation; this file is never read again after that.
+# If you ever change Cilium's config, update both, or this file will
+# silently drift from what's actually running.
+ipam:
+  mode: kubernetes
+kubeProxyReplacement: true
+k8sServiceHost: localhost
+k8sServicePort: 7445
+
+# Talos-specific, both required — confirmed against Cilium's own official
+# Talos install docs. Talos doesn't auto-mount cgroup v2 the way most
+# distros do, so autoMount has to be disabled with the path given
+# explicitly. The capabilities lists exist because Cilium's DEFAULT set
+# includes SYS_MODULE (for kernel module loading) — Talos permanently
+# blocks that capability for every process, kernel-level, no exceptions,
+# so it has to be explicitly dropped here or every Cilium pod fails to
+# start with "unable to apply caps: operation not permitted".
+cgroup:
+  autoMount:
+    enabled: false
+  hostRoot: /sys/fs/cgroup
+securityContext:
+  capabilities:
+    ciliumAgent:
+      - CHOWN
+      - KILL
+      - NET_ADMIN
+      - NET_RAW
+      - IPC_LOCK
+      - SYS_ADMIN
+      - SYS_RESOURCE
+      - DAC_OVERRIDE
+      - FOWNER
+      - SETGID
+      - SETUID
+    cleanCiliumState:
+      - NET_ADMIN
+      - SYS_ADMIN
+      - SYS_RESOURCE
+
+l2announcements:
+  enabled: true
+externalIPs:
+  enabled: true
+
+hubble:
+  enabled: true
+  relay:
+    enabled: false
+  ui:
+    enabled: false

@@ -1,0 +1,43 @@
+# PHASE 2: every resource whose `kind` is a CRD installed by a HelmRelease
+# in ../infrastructure/. Reconciled by a separate Flux Kustomization
+# (clusters/homelab/infrastructure-config.yaml) that depends on the
+# infrastructure Kustomization being fully healthy first — see that file's
+# comment for why this split exists at all.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  # cilium.io CRDs, from cilium/release.yaml
+  - ../infrastructure/cilium/ippool.yaml
+
+  # cert-manager.io CRDs, from cert-manager/release.yaml
+  - ../infrastructure/cert-manager/cluster-issuer.yaml
+  - ../infrastructure/cert-manager/certificate.yaml
+
+  # external-secrets.io CRDs, from external-secrets/release.yaml —
+  # secretstore.yaml first conceptually (everything else references it),
+  # though ordering within this file doesn't matter for apply-time
+  # success, only for how quickly ExternalSecrets actually sync.
+  - ../infrastructure/external-secrets/secretstore.yaml
+  - ../infrastructure/monitoring/external-secret.yaml
+  - ../infrastructure/gatus/external-secret.yaml
+  - ../infrastructure/tailscale/external-secret.yaml
+  - ../infrastructure/renovate/external-secret.yaml
+  - ../infrastructure/harness/external-secret.yaml
+  - ../infrastructure/tuppr/external-secret.yaml
+  - ../infrastructure/cert-manager/external-secret.yaml
+  - ../infrastructure/authelia/external-secret-postgres.yaml
+  - ../infrastructure/authelia/external-secret-core.yaml
+  - ../infrastructure/authelia/external-secret-users.yaml
+
+  # monitoring.coreos.com CRDs, from monitoring/release.yaml
+  - ../infrastructure/monitoring/rules/media-apps.yaml
+  - ../infrastructure/monitoring/rules/cluster-ops.yaml
+
+  # tuppr.home-operations.com CRDs, from tuppr/release.yaml
+  - ../infrastructure/tuppr/upgrades.yaml
+
+  # traefik.io CRDs, from traefik/release.yaml
+  - ../infrastructure/authelia/middleware.yaml
+
+  # postgresql.cnpg.io CRDs, from cnpg/release.yaml
+  - ../infrastructure/authelia/postgres-cluster.yaml

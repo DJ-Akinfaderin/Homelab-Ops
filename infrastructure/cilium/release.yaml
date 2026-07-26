@@ -13,6 +13,8 @@ spec:
         kind: HelmRepository
         name: cilium
   values:
+    ipam:
+      mode: kubernetes
     kubeProxyReplacement: true
     # Point at KubePrism (localhost:7445) rather than a single control-plane
     # IP — this is what the kubePrism patch on every node was for. It load
@@ -20,6 +22,34 @@ spec:
     # hardcoded to PC1 specifically.
     k8sServiceHost: localhost
     k8sServicePort: 7445
+
+    # Talos-specific, both required — see values.yaml's longer comment.
+    # Short version: Talos doesn't auto-mount cgroup v2 like most distros,
+    # and permanently blocks the SYS_MODULE capability Cilium requests by
+    # default, so both have to be handled explicitly or every Cilium pod
+    # fails to start with "unable to apply caps: operation not permitted".
+    cgroup:
+      autoMount:
+        enabled: false
+      hostRoot: /sys/fs/cgroup
+    securityContext:
+      capabilities:
+        ciliumAgent:
+          - CHOWN
+          - KILL
+          - NET_ADMIN
+          - NET_RAW
+          - IPC_LOCK
+          - SYS_ADMIN
+          - SYS_RESOURCE
+          - DAC_OVERRIDE
+          - FOWNER
+          - SETGID
+          - SETUID
+        cleanCiliumState:
+          - NET_ADMIN
+          - SYS_ADMIN
+          - SYS_RESOURCE
 
     # Bare-metal LoadBalancer support (replaces needing a separate MetalLB) —
     # this is what gives Traefik a real external IP.

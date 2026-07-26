@@ -1,0 +1,20 @@
+# PHASE 2 — every custom resource that depends on a CRD from Phase 1.
+# dependsOn + wait: true on the infrastructure Kustomization means this
+# genuinely waits for those HelmReleases to report healthy (CRDs
+# registered), not just "applied without erroring."
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: infrastructure-config
+  namespace: flux-system
+spec:
+  dependsOn:
+    - name: infrastructure
+  interval: 10m
+  path: ./infrastructure-config
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  wait: true
+  timeout: 5m

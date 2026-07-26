@@ -6,6 +6,7 @@ metadata:
 spec:
   dependsOn:
     - name: infrastructure
+    - name: infrastructure-config   # apps rely on Traefik's default cert (a Phase 2 Certificate) actually being issued
   interval: 10m
   path: ./apps/overlays/production
   prune: true
