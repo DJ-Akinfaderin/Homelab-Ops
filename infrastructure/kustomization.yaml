@@ -33,8 +33,5 @@ resources:
   - cert-manager/release.yaml
   - capacitor/ingress-tailscale.yaml
   - capacitor/ingress-lan.yaml
-  - garage/config.yaml
-  - garage/pvc.yaml
-  - garage/deployment.yaml
   - talos-backup/cronjob.yaml
   - external-secrets/release.yaml

@@ -73,7 +73,7 @@ needed.
 clusters/homelab/     Flux Kustomizations (entry points)
 infrastructure/        Cilium, Traefik, NFS storage, monitoring, Tailscale,
                         Renovate, Harness Delegate, Tuppr, cert-manager,
-                        Capacitor, Garage, etcd backups, External Secrets,
+                        Capacitor, etcd backups, External Secrets,
                         Loki + Alloy (logs), Gatus (uptime), CloudNativePG,
                         Authelia (SSO)
 apps/base/              One folder per app
@@ -129,11 +129,16 @@ Grafana/Prometheus) currently has no backup at all** — Velero was removed
 by request, and nothing has replaced it. Read the "Known gap" section of
 `RUNBOOK.md` before assuming your photos are safe.
 
-`infrastructure/garage/` is now unused — it was built specifically as
-Velero's backup target and nothing else in this repo talks to it. Left in
-place in case you want to reintroduce Velero (or something else that
-wants local S3) later, but it's dead weight as-is. Say the word if you'd
-rather I remove it too.
+`infrastructure/garage/` was removed entirely (it was built specifically
+as Velero's backup target, then became unused after Velero was removed).
+Leaving it deployed but unused turned out to be an active problem, not
+just clutter: its Deployment required a manually-created secret that
+`DEPLOYMENT.md` told people to skip, which made its own health check
+fail — and because the `infrastructure` Kustomization health-checks every
+resource in it, that one failure blocked everything else behind it too,
+apps included. If you want local S3 storage again later (for Velero or
+anything else), it's straightforward to re-add — just make sure whatever
+you add actually gets its required secrets set up, not left "optional."
 
 ## A note on Capacitor (Flux dashboard)
 Flux itself has no GUI by design — it's CLI/API-first. Capacitor is the
@@ -161,7 +166,6 @@ top of it.
 - `infrastructure/tuppr/README.md` — talosconfig → `/tuppr/*`
 - `infrastructure/monitoring/README.md` — Pushover credentials → `/pushover/*`
 - `infrastructure/cert-manager/README.md` — Cloudflare API token → `/cloudflare/*`
-- `infrastructure/garage/README.md` — currently unused, see note above
 - `infrastructure/gatus/README.md` — DNS for the gatus.home.dakin.im LAN route
 - `infrastructure/authelia/README.md` — core secrets, Postgres password, user database
 

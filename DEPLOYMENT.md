@@ -171,5 +171,3 @@ for every app:
       documented in `apps/base/immich/release.yaml`'s comments, not
       something Flux can do for you
 - [ ] Read `RUNBOOK.md` end to end *before* you need it, not after
-- [ ] `infrastructure/garage/README.md` — skip unless you have a
-      specific reason to; it's currently unused in this repo

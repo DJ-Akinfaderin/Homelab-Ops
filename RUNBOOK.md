@@ -48,9 +48,9 @@ on, see the top-level README).
    ```
 4. This restores the ENTIRE cluster state as of that snapshot — every
    HelmRelease, every Secret (Tailscale OAuth, GitHub token, Harness
-   token, Pushover creds, Cloudflare token, garage credentials, the
-   talosconfig itself), everything. You are not manually recreating those
-   seven-plus secrets from scratch.
+   token, Pushover creds, Cloudflare token, the talosconfig itself),
+   everything. You are not manually recreating those seven-plus secrets
+   from scratch.
 5. Once etcd is healthy (`talosctl etcd status`), the workers reconnect on
    their own, and Flux resumes reconciling from wherever Git is — anything
    committed after the snapshot but not yet applied gets picked up
