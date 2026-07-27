@@ -19,6 +19,12 @@ kind: CiliumL2AnnouncementPolicy
 metadata:
   name: homelab-l2
 spec:
-  interface: eth0
+  # Confirmed against Cilium's own official docs: this field is
+  # `interfaces` (plural), a list of regex patterns — not `interface`
+  # (singular string), which is what caused the dry-run schema failure.
+  # ^eth0$ matches exactly "eth0" and nothing else; widen to something
+  # like ^eth[0-9]+$ if your nodes' interface names vary.
+  interfaces:
+    - ^eth0$
   externalIPs: true
   loadBalancerIPs: true
