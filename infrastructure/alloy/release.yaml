@@ -1,11 +1,17 @@
-# The Alloy/k8s-monitoring chart had a major v4 restructuring in April
-# 2026 (Grafana's own words: "biggest update ever"). The shape below
-# follows the officially documented pattern for "logs only, no metrics"
-# (destinations + podLogsViaLoki), but given how recent and large that
-# change was, verify against `helm show values grafana/k8s-monitoring`
-# for whatever version gets pinned below before assuming every key here
-# is exactly right — same category of caveat as the Immich chart elsewhere
-# in this repo.
+# Confirmed and fixed a real bug the hard way: v4 changed `destinations`
+# from a list to a map keyed by name (confirmed against Grafana's own v4
+# migration docs — "In v4, destinations are defined as a map instead of a
+# list"). The list syntax below was wrong; this is the corrected map form.
+#
+# Second, UNCONFIRMED uncertainty: v4 also replaced named Alloy instances
+# (alloy-metrics, alloy-logs) with a `collectors:` map — meaning the
+# alloy-logs.controller.tolerations / alloy-logs.resources keys below may
+# ALSO be wrong, just not yet surfaced, since Helm's schema validation
+# failed on destinations first and never got to check further. If this
+# still errors after the destinations fix, check
+# `helm show values grafana/k8s-monitoring --version <pinned-version>`
+# for the current collectors: structure rather than assuming this comment
+# is the final word.
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:
@@ -26,14 +32,11 @@ spec:
 
     # Points at VictoriaLogs, not Loki — type stays "loki" since Alloy is
     # still sending in Loki's wire format, VictoriaLogs just accepts it
-    # natively on this endpoint (confirmed against VictoriaLogs' own data
-    # ingestion docs). Service name assumes the chart's default naming
-    # convention (<release-name>-victoria-logs-single-server) — verify
-    # with `kubectl get svc -n monitoring` after first deploy, same
-    # caveat as everywhere else a chart's exact generated names are
-    # assumed rather than confirmed.
+    # natively on this endpoint. Service name assumes the chart's default
+    # naming convention (<release-name>-victoria-logs-single-server) —
+    # verify with `kubectl get svc -n monitoring` after first deploy.
     destinations:
-      - name: victorialogs
+      victorialogs:
         type: loki
         url: http://victorialogs-victoria-logs-single-server.monitoring.svc.cluster.local:9428/insert/loki/api/v1/push
 
