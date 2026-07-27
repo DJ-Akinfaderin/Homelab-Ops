@@ -5,6 +5,19 @@ metadata:
   namespace: monitoring
 spec:
   interval: 1h
+  # This HelmRelease is explicitly health-checked by the infrastructure
+  # Kustomization (Phase 2 needs its monitoring.coreos.com CRDs) — but
+  # Alertmanager's pod can't start until its Pushover secret exists
+  # (infrastructure/monitoring/README.md's manual step), which normally
+  # wouldn't happen until AFTER Phase 2 runs. Without disabling Helm's own
+  # wait-for-pods behavior, that would make this release report Failed
+  # for the same reason Harness did — moving the deadlock here instead of
+  # actually fixing it. disableWait lets Helm consider the release
+  # successful once resources are applied, not once every pod is Running.
+  install:
+    disableWait: true
+  upgrade:
+    disableWait: true
   chart:
     spec:
       chart: kube-prometheus-stack

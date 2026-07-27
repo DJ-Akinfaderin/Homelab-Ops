@@ -163,7 +163,6 @@ for every app:
 ## Phase 10 — Everything else (not blocking "apps reachable," worth doing soon after)
 
 - [ ] `infrastructure/renovate/README.md` — GitHub token, dependency PRs
-- [ ] `infrastructure/harness/README.md` — Harness signup, delegate token
 - [ ] `infrastructure/tuppr/README.md` — talosconfig, automated Talos/K8s
       upgrades (reuses the same talosconfig from Phase 1's `gen config`
       step — see `talos/README.md`)

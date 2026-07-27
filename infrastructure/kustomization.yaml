@@ -28,7 +28,6 @@ resources:
   - authelia/release.yaml
   - tailscale/release.yaml
   - renovate/cronjob.yaml
-  - harness/release.yaml
   - tuppr/release.yaml
   - cert-manager/release.yaml
   - capacitor/ingress-tailscale.yaml

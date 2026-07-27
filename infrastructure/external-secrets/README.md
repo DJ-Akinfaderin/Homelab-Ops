@@ -1,7 +1,7 @@
 # Infisical — one-time setup (not managed by Flux/Git)
 
 This is the only manual `kubectl create secret` left in this repo —
-everything else (Tailscale, Renovate, Harness, Tuppr, Pushover,
+everything else (Tailscale, Renovate, Tuppr, Pushover,
 Cloudflare) pulls from Infisical via the ExternalSecret in each of their
 folders instead.
 

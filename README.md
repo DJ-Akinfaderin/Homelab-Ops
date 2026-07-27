@@ -72,7 +72,7 @@ needed.
 ```
 clusters/homelab/     Flux Kustomizations (entry points)
 infrastructure/        Cilium, Traefik, NFS storage, monitoring, Tailscale,
-                        Renovate, Harness Delegate, Tuppr, cert-manager,
+                        Renovate, Tuppr, cert-manager,
                         Capacitor, etcd backups, External Secrets,
                         VictoriaLogs + Alloy (logs), Gatus (uptime),
                         CloudNativePG, Authelia (SSO)
@@ -169,7 +169,6 @@ top of it.
   Infisical project + Machine Identity (the one remaining manual secret)
 - `infrastructure/tailscale/README.md` — OAuth client → `/tailscale/*`
 - `infrastructure/renovate/README.md` — GitHub token → `/renovate/*`
-- `infrastructure/harness/README.md` — Harness account signup, delegate token → `/harness/*`
 - `infrastructure/tuppr/README.md` — talosconfig → `/tuppr/*`
 - `infrastructure/monitoring/README.md` — Pushover credentials → `/pushover/*`
 - `infrastructure/cert-manager/README.md` — Cloudflare API token → `/cloudflare/*`
@@ -233,12 +232,3 @@ in this stack:
   pool exhaustion)
 - NFS mount-level failures specifically, as opposed to volume space
   (would need node_exporter's NFS mountstats collector enabled)
-
-## A note on Harness
-The old free self-hosted "Harness CD Community Edition" was retired in
-Dec 2023. What's here instead is a lightweight in-cluster **Delegate**
-(single pod, ~512Mi-1Gi) that connects outbound to Harness's SaaS Manager
-(free tier available) — the pipelines/dashboard live in Harness's cloud,
-not on your hardware. Much lighter than Devtron would have been, but it
-does mean your CD tooling now depends on an external service being up,
-unlike everything else in this repo which is fully self-contained.

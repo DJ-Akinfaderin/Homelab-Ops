@@ -47,9 +47,9 @@ on, see the top-level README).
    talosctl bootstrap --recover-from=./etcd-snapshot-<date>.db --nodes <PC1-IP>
    ```
 4. This restores the ENTIRE cluster state as of that snapshot — every
-   HelmRelease, every Secret (Tailscale OAuth, GitHub token, Harness
-   token, Pushover creds, Cloudflare token, the talosconfig itself),
-   everything. You are not manually recreating those seven-plus secrets
+   HelmRelease, every Secret (Tailscale OAuth, GitHub token, Pushover
+   creds, Cloudflare token, the talosconfig itself), everything. You are
+   not manually recreating those six-plus secrets
    from scratch.
 5. Once etcd is healthy (`talosctl etcd status`), the workers reconnect on
    their own, and Flux resumes reconciling from wherever Git is — anything
@@ -71,7 +71,7 @@ your NAS both survived (NAS surviving matters a lot here — see below):
    README (Image Factory → gen config → apply → bootstrap → Cilium →
    Flux)
 2. Once Flux is running and has reconciled `infrastructure/`, every
-   secret-bearing tool (Tailscale, Renovate, Harness, Tuppr, Pushover,
+   secret-bearing tool (Tailscale, Renovate, Tuppr, Pushover,
    cert-manager) needs its out-of-band secret recreated — follow each
    `infrastructure/*/README.md` in order
 3. If the NAS itself survived: PVC data (Immich library, Jellyfin config,

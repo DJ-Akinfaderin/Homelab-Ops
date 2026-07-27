@@ -3,11 +3,27 @@
 # below) after a real incident: putting CRD-installing HelmReleases and
 # the custom resources that depend on those CRDs in the same Kustomization
 # caused Flux to fail its dry-run validation across the WHOLE batch
-# whenever any one CRD wasn't registered yet — meaning nothing applied at
-# all, not just the resource with the problem. wait: true here is what
-# makes the dependsOn in infrastructure-config.yaml actually meaningful —
-# without it, "depends on this Kustomization" would only mean "applied
-# after," not "after the HelmReleases inside it are actually healthy."
+# whenever any one CRD wasn't registered yet.
+#
+# A SECOND real incident, found later the same night, is why this no
+# longer uses a blanket `wait: true`: several HelmReleases here (Harness,
+# Tailscale, Authelia, kube-prometheus-stack's Alertmanager) mount Secrets
+# that only get created by ExternalSecrets living in Phase 2 — which is
+# blocked behind THIS Kustomization being healthy. Blanket wait: true
+# health-checks every resource, so any one of those pods sitting unable
+# to start (missing Secret) would permanently block this entire
+# Kustomization, which blocks Phase 2, which is the only thing that could
+# ever create the missing Secret in the first place — a genuine deadlock,
+# not a timing issue.
+#
+# The fix: only explicitly health-check the HelmReleases that actually
+# install CRDs Phase 2 depends on. Everything else in this Kustomization
+# still gets applied normally — it just doesn't gate progress if its pods
+# aren't healthy yet (e.g. because Infisical hasn't been set up). Once
+# infrastructure/external-secrets/README.md's setup is done and Phase 2's
+# ExternalSecrets sync, those pods recover on their own — Kubernetes
+# retries mounting a Secret automatically once it exists, no re-apply
+# needed.
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata:
@@ -20,5 +36,34 @@ spec:
   sourceRef:
     kind: GitRepository
     name: flux-system
-  wait: true
+  wait: false
+  healthChecks:
+    - apiVersion: helm.toolkit.fluxcd.io/v2
+      kind: HelmRelease
+      name: cilium
+      namespace: kube-system
+    - apiVersion: helm.toolkit.fluxcd.io/v2
+      kind: HelmRelease
+      name: cert-manager
+      namespace: cert-manager
+    - apiVersion: helm.toolkit.fluxcd.io/v2
+      kind: HelmRelease
+      name: external-secrets
+      namespace: external-secrets
+    - apiVersion: helm.toolkit.fluxcd.io/v2
+      kind: HelmRelease
+      name: kube-prometheus-stack
+      namespace: monitoring
+    - apiVersion: helm.toolkit.fluxcd.io/v2
+      kind: HelmRelease
+      name: traefik
+      namespace: kube-system
+    - apiVersion: helm.toolkit.fluxcd.io/v2
+      kind: HelmRelease
+      name: cnpg
+      namespace: cnpg-system
+    - apiVersion: helm.toolkit.fluxcd.io/v2
+      kind: HelmRelease
+      name: tuppr
+      namespace: kube-system-upgrade
   timeout: 5m

@@ -4,10 +4,10 @@ persist: true
 # Provides machine specific configuration options.
 machine:
     type: worker # Defines the role of the machine within the cluster.
-    token: 1kyg9w.v9umjf6a26t38hzf # The `token` is used by a machine to join the PKI of the cluster.
+    token: q7cx9h.7jgsd91eamx62nse # The `token` is used by a machine to join the PKI of the cluster.
     # The root certificate authority of the PKI.
     ca:
-        crt: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUJQakNCOGFBREFnRUNBaEFqa2U5MXZlZ3Yxd3dsM1JPczFaQlRNQVVHQXl0bGNEQVFNUTR3REFZRFZRUUsKRXdWMFlXeHZjekFlRncweU5qQTNNalV4T1RBek5EVmFGdzB6TmpBM01qSXhPVEF6TkRWYU1CQXhEakFNQmdOVgpCQW9UQlhSaGJHOXpNQ293QlFZREsyVndBeUVBQjV3WHJBV3l4TlFpKzNyanhreDVKWkJ5b1g3N0VFOGtMRzJPCnJObVB5TnFqWVRCZk1BNEdBMVVkRHdFQi93UUVBd0lDaERBZEJnTlZIU1VFRmpBVUJnZ3JCZ0VGQlFjREFRWUkKS3dZQkJRVUhBd0l3RHdZRFZSMFRBUUgvQkFVd0F3RUIvekFkQmdOVkhRNEVGZ1FVd3N1bkoyYUxGUWtlVk8zQQpDY1l5TGdDUjlVd3dCUVlESzJWd0EwRUFkV0c4bFo5dlpQNFpnOHZaWHRMSThodC80eG5sTTNRMWEvQ2RJdlg1CjB6TVhYN3U1WTZiQWF1Vk93WmpSeTZDdTU2dmlKRUdBRXEwMmFSRFRzcEFYREE9PQotLS0tLUVORCBDRVJUSUZJQ0FURS0tLS0tCg==
+        crt: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUJQakNCOGFBREFnRUNBaEFYeFR1bFBaa2xKNExuUlA3L1ZrTmlNQVVHQXl0bGNEQVFNUTR3REFZRFZRUUsKRXdWMFlXeHZjekFlRncweU5qQTNNamN3TWpVek5UaGFGdzB6TmpBM01qUXdNalV6TlRoYU1CQXhEakFNQmdOVgpCQW9UQlhSaGJHOXpNQ293QlFZREsyVndBeUVBRk9pNFJPUVdQWnlQM3crZ2d6SmVBcFJqZFYwT0krZ0RYQ3N5Cm5nN1BEV2lqWVRCZk1BNEdBMVVkRHdFQi93UUVBd0lDaERBZEJnTlZIU1VFRmpBVUJnZ3JCZ0VGQlFjREFRWUkKS3dZQkJRVUhBd0l3RHdZRFZSMFRBUUgvQkFVd0F3RUIvekFkQmdOVkhRNEVGZ1FVNWxrWkRudXpHOXlTYjBKSQphOEpwWFpPOFhDb3dCUVlESzJWd0EwRUFYeWRXY2F2L0RWdUxOaTIwQm4yTHljaGdBek04bjF5VEh4b1g5VjF6CjN2aEhURXNUbi9oaUdnWHNvdFVJUitWcUpWSVJKNk93cFZtM1ZKYlRNZ1RPQ2c9PQotLS0tLUVORCBDRVJUSUZJQ0FURS0tLS0tCg==
         key: ""
     # Extra certificate subject alternative names for the machine's certificate.
     certSANs: []
@@ -218,8 +218,8 @@ machine:
     #     exampleTaint: exampleTaintValue:NoSchedule
 # Provides cluster specific configuration options.
 cluster:
-    id: ltKaiCjIt9IqA7jW2oSt_64xsgcOmny1hHWFV9QIrK0= # Globally unique identifier for this cluster (base64 encoded random 32 bytes).
-    secret: jlNubpR9XGsYKRJZHlAEpvPjv7D4Jd/GbgMkvCwmegg= # Shared secret of cluster (base64 encoded random 32 bytes).
+    id: BUs5BEJDiekeK7ttDCjxSUSBgHy0N-AhDjJDQrTlfEo= # Globally unique identifier for this cluster (base64 encoded random 32 bytes).
+    secret: ZOSzNplKl6Kbm5y5r03CbRbHeS5nhyrTSwnhk59NDKA= # Shared secret of cluster (base64 encoded random 32 bytes).
     # Provides control plane specific configuration options.
     controlPlane:
         endpoint: https://10.70.5.103:6443 # Endpoint is the canonical controlplane endpoint, which can be an IP address or a DNS hostname.
@@ -236,10 +236,10 @@ cluster:
         # The service subnet CIDR.
         serviceSubnets:
             - 10.96.0.0/12
-    token: zbypnv.4qcdz3dc8ua2vxi9 # The [bootstrap token](https://kubernetes.io/docs/reference/access-authn-authz/bootstrap-tokens/) used to join the cluster.
+    token: amycgv.gqd57ge8qhj5a5kg # The [bootstrap token](https://kubernetes.io/docs/reference/access-authn-authz/bootstrap-tokens/) used to join the cluster.
     # The base64 encoded root certificate authority used by Kubernetes.
     ca:
-        crt: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUJpVENDQVRDZ0F3SUJBZ0lSQUx3aTIrNlI3QnRtdk5Lc3hHd0NJUUV3Q2dZSUtvWkl6ajBFQXdJd0ZURVQKTUJFR0ExVUVDaE1LYTNWaVpYSnVaWFJsY3pBZUZ3MHlOakEzTWpVeE9UQXpORFZhRncwek5qQTNNakl4T1RBegpORFZhTUJVeEV6QVJCZ05WQkFvVENtdDFZbVZ5Ym1WMFpYTXdXVEFUQmdjcWhrak9QUUlCQmdncWhrak9QUU1CCkJ3TkNBQVFRL2NPSE0yLzhJeW5zc3pXdStOSmk2Q0lvWUFVbkdBSzhoYi9oVkplTDI0dWRyKzVsU0JlRGlkZTUKUE9NbC8wcDRuSG5KZjhmbEJaRnprM1c4VW5JUm8yRXdYekFPQmdOVkhROEJBZjhFQkFNQ0FvUXdIUVlEVlIwbApCQll3RkFZSUt3WUJCUVVIQXdFR0NDc0dBUVVGQndNQ01BOEdBMVVkRXdFQi93UUZNQU1CQWY4d0hRWURWUjBPCkJCWUVGRUpHNkZiV0k5MWh0RHo5UXFVL2xUQnMzNFA5TUFvR0NDcUdTTTQ5QkFNQ0EwY0FNRVFDSUJRZlRWUGQKTmZsMloxRzc0OVBTS0dtZ1RaU3VyV1RQSlZoejJUTkh5azZxQWlCNHFlR1h3RnZHeWs0RC8zY0ZDcmk1OU1veQp3U1hkemZwYko4TTVsdCs4TWc9PQotLS0tLUVORCBDRVJUSUZJQ0FURS0tLS0tCg==
+        crt: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUJpVENDQVMrZ0F3SUJBZ0lRY2Vzc05wdkp3cjZ3b2tmMmozYnVyREFLQmdncWhrak9QUVFEQWpBVk1STXcKRVFZRFZRUUtFd3ByZFdKbGNtNWxkR1Z6TUI0WERUSTJNRGN5TnpBeU5UTTFPRm9YRFRNMk1EY3lOREF5TlRNMQpPRm93RlRFVE1CRUdBMVVFQ2hNS2EzVmlaWEp1WlhSbGN6QlpNQk1HQnlxR1NNNDlBZ0VHQ0NxR1NNNDlBd0VICkEwSUFCUDBkMmplQVVVZHlzNEJtZ2YxYkxrekFRelp5anB3clJiR2d1TXVjTys1Z0pMeFNVYnVNajJrcnN5TFEKYzhXdGI5NGtad1N0THByVDNob0YxOWJvYk5TallUQmZNQTRHQTFVZER3RUIvd1FFQXdJQ2hEQWRCZ05WSFNVRQpGakFVQmdnckJnRUZCUWNEQVFZSUt3WUJCUVVIQXdJd0R3WURWUjBUQVFIL0JBVXdBd0VCL3pBZEJnTlZIUTRFCkZnUVV0Vk0zVHVKVU1OOVRlSk1zVVFSTVBydm1VNmd3Q2dZSUtvWkl6ajBFQXdJRFNBQXdSUUlnVGcxbU9CUmEKK3hVMFJ2VmFIVnIzNWpUWjVmVE81eGFQQStxRzlSakxqQmNDSVFEbzJGci9wajF4bXkzeE9SZ0RjY3hMcmFKKwpkTVVhUmQ4V2RZTm5ORTBiTGc9PQotLS0tLUVORCBDRVJUSUZJQ0FURS0tLS0tCg==
         key: ""
     # Kube-proxy server-specific configuration options
     proxy:
@@ -411,6 +411,7 @@ cluster:
     # # Allows running workload on control-plane nodes.
     # allowSchedulingOnControlPlanes: true
 ---
+
 
 # # A static hostname to set for the machine.
 # hostname: controlplane1

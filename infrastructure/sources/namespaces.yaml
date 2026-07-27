@@ -21,11 +21,6 @@ metadata:
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: harness-delegate-ng
----
-apiVersion: v1
-kind: Namespace
-metadata:
   name: kube-system-upgrade
 ---
 apiVersion: v1
