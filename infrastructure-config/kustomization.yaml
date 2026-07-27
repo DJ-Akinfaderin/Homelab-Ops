@@ -32,8 +32,13 @@ resources:
   - ../infrastructure/monitoring/rules/media-apps.yaml
   - ../infrastructure/monitoring/rules/cluster-ops.yaml
 
-  # tuppr.home-operations.com CRDs, from tuppr/release.yaml
-  - ../infrastructure/tuppr/upgrades.yaml
+  # tuppr.home-operations.com CRDs, from tuppr/release.yaml — REMOVED for
+  # now. tuppr's release is currently failing (real chart schema error,
+  # unfixed), so its CRDs may never have registered. Applying this against
+  # a possibly-nonexistent CRD risks the exact dry-run failure that caused
+  # the first incident tonight. Add back once tuppr/release.yaml's actual
+  # error is fixed and confirmed installing cleanly.
+  # - ../infrastructure/tuppr/upgrades.yaml
 
   # traefik.io CRDs, from traefik/release.yaml
   - ../infrastructure/authelia/middleware.yaml

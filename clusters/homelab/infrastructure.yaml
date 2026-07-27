@@ -16,14 +16,17 @@
 # ever create the missing Secret in the first place — a genuine deadlock,
 # not a timing issue.
 #
-# The fix: only explicitly health-check the HelmReleases that actually
-# install CRDs Phase 2 depends on. Everything else in this Kustomization
-# still gets applied normally — it just doesn't gate progress if its pods
-# aren't healthy yet (e.g. because Infisical hasn't been set up). Once
-# infrastructure/external-secrets/README.md's setup is done and Phase 2's
-# ExternalSecrets sync, those pods recover on their own — Kubernetes
-# retries mounting a Secret automatically once it exists, no re-apply
-# needed.
+# A THIRD incident: tuppr's HelmRelease has a real, unfixed chart error
+# (ServiceAccount/talos.dev schema issue — see infrastructure/tuppr's
+# history). Since it was in this healthChecks list, its permanent failure
+# meant `infrastructure` could never reach Ready at all — not a timing
+# problem, a genuine standing block. Removed until tuppr's actual fix is
+# in — its CRDs aren't needed elsewhere in Phase 1, only by
+# infrastructure-config/tuppr/upgrades.yaml, which was pulled out of
+# Phase 2 for the same reason (if tuppr's release failed completely, its
+# CRDs likely never registered, which would've made THAT dry-run fail the
+# same way cert-manager's did in the very first incident tonight). Add
+# both back once tuppr's chart values are actually fixed.
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata:
@@ -62,8 +65,4 @@ spec:
       kind: HelmRelease
       name: cnpg
       namespace: cnpg-system
-    - apiVersion: helm.toolkit.fluxcd.io/v2
-      kind: HelmRelease
-      name: tuppr
-      namespace: kube-system-upgrade
   timeout: 5m
