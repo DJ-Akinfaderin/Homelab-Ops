@@ -1,17 +1,13 @@
-# Confirmed and fixed a real bug the hard way: v4 changed `destinations`
-# from a list to a map keyed by name (confirmed against Grafana's own v4
-# migration docs — "In v4, destinations are defined as a map instead of a
-# list"). The list syntax below was wrong; this is the corrected map form.
-#
-# Second, UNCONFIRMED uncertainty: v4 also replaced named Alloy instances
-# (alloy-metrics, alloy-logs) with a `collectors:` map — meaning the
-# alloy-logs.controller.tolerations / alloy-logs.resources keys below may
-# ALSO be wrong, just not yet surfaced, since Helm's schema validation
-# failed on destinations first and never got to check further. If this
-# still errors after the destinations fix, check
-# `helm show values grafana/k8s-monitoring --version <pinned-version>`
-# for the current collectors: structure rather than assuming this comment
-# is the final word.
+# v4's real structure, confirmed against Grafana's own "Kubernetes
+# Monitoring Helm chart v4: Biggest update ever!" blog post — the
+# authoritative source, not inferred from an error message this time.
+# Two changes from v3, both now applied:
+#   1. destinations: is a map keyed by name, not a list (already fixed)
+#   2. collectors: replaces named instances (alloy-metrics/alloy-logs)
+#      with a user-defined map, each entry built from `presets:` —
+#      confirmed via the chart's own validation error
+#      ("At least one collector should be enabled") that this was the
+#      actual missing piece, not a guess.
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:
@@ -40,6 +36,34 @@ spec:
         type: loki
         url: http://victorialogs-victoria-logs-single-server.monitoring.svc.cluster.local:9428/insert/loki/api/v1/push
 
+    # One collector, built from the two presets Grafana's own docs pair
+    # for exactly this job: reading container log files, deployed as a
+    # DaemonSet (one per node, matching how this was always intended to
+    # run). Since there's only one collector defined, podLogsViaLoki and
+    # clusterEvents below don't need an explicit `collector:` field to
+    # point at it — the chart uses the only one available automatically.
+    collectors:
+      logs-collector:
+        presets: [filesystem-log-reader, daemonset]
+        # Ensures the control-plane node (PC1) is included despite its
+        # scheduling taint — etcd/apiserver-adjacent logs matter given
+        # that node is the single point of failure. Best-effort mapping
+        # from the old alloy-logs.controller.tolerations path to this
+        # collector's equivalent — if this specific sub-key errors on
+        # apply (unlike collectors/presets, which are now confirmed),
+        # check `helm show values grafana/k8s-monitoring --version 4.3.1`
+        # for the exact current path rather than assume this comment is
+        # the final word.
+        controller:
+          tolerations:
+            - operator: Exists
+        resources:
+          requests:
+            cpu: 50m
+            memory: 64Mi
+          limits:
+            memory: 256Mi
+
     # This is the actual answer to "scrape logs from all applications" —
     # discovers every pod via the Kubernetes API, no per-app config.
     podLogsViaLoki:
@@ -53,18 +77,3 @@ spec:
     clusterEvents:
       enabled: true
       destinations: ["victorialogs"]
-
-    # Alloy runs as a DaemonSet by default — this just makes sure that
-    # includes the control-plane node (PC1), which is otherwise tainted
-    # against scheduling. Worth having: etcd/apiserver-adjacent logs are
-    # useful precisely because that node is your single point of failure.
-    alloy-logs:
-      controller:
-        tolerations:
-          - operator: Exists
-      resources:
-        requests:
-          cpu: 50m
-          memory: 64Mi
-        limits:
-          memory: 256Mi
