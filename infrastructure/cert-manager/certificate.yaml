@@ -5,10 +5,12 @@
 # stay separate from anything else you might want to put on the apex
 # domain later.
 #
-# Starts pointed at the staging issuer. Once you've confirmed it issues
-# successfully (check `kubectl describe certificate traefik-default-cert -n
-# kube-system`), switch issuerRef.name to letsencrypt-cloudflare-prod and
-# delete the resulting secret to force reissuance against production.
+# Confirmed switched to production and successfully issuing — this
+# reverted back to staging at least once already across a long session
+# (same category of issue as other config regressions that day), so if
+# you ever see a staging cert being served again despite this file
+# showing prod, check `git log -- infrastructure/cert-manager/certificate.yaml`
+# before assuming it's a new bug.
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
@@ -17,7 +19,7 @@ metadata:
 spec:
   secretName: traefik-default-cert-tls
   issuerRef:
-    name: letsencrypt-cloudflare-staging
+    name: letsencrypt-cloudflare-prod
     kind: ClusterIssuer
   dnsNames:
     - "home.dakin.im"
