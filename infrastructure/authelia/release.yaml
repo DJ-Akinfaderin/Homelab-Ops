@@ -1,21 +1,21 @@
-# Rewritten after directly fetching the chart's own real values.yaml
-# source (github.com/authelia/chartrepo) — every top-level key rejected by
-# the original schema error is fixed below, confirmed against that source
-# directly, not guessed:
-#   config          -> configMap   (confirmed: chart's top-level key is
-#                                   literally `configMap`, not `config`)
-#   resources       -> pod.resources
-#   volumes/volumeMounts -> pod.extraVolumes / pod.extraVolumeMounts
-#   ingress.hosts / ingress.ingressClassName -> ingress.rulesOverride /
-#                                   ingress.className (no `hosts` field
-#                                   exists at all; className is singular,
-#                                   not ingressClassName)
-#   persistence.storageClassName -> unconfirmed exact key, see below
+# Rewritten a third time, this time from the chart's actual real values
+# file (`helm show values authelia/authelia --version 0.11.6`), not
+# search fragments — every field below is confirmed against real content,
+# not reconstructed from documentation or examples elsewhere.
 #
-# Pinned to the exact version rather than a range on purpose — this chart
-# repo's own README explicitly warns it's pre-1.0 with "no stability
-# guarantees" and "always pin to specific versions." The `>=0.9.0 <1.0.0`
-# range was the original mistake; this is now a real version match.
+# The secret-mounting mechanism is genuinely two-tiered, confirmed
+# directly from the chart's top-level `secret:` block and the per-field
+# pattern used identically by jwt_secret, session.encryption_key,
+# storage.encryption_key, and storage.postgres.password:
+#   1. secret.additionalSecrets.<name>: {} mounts a real Kubernetes
+#      Secret (named exactly <name>) at /{secret.mountPath}/{name}/
+#   2. Each config field then references secret_name (matching an
+#      additionalSecrets key) + path (the key within that Secret) —
+#      resolving to the file /{mountPath}/{secret_name}/{path}
+#
+# authelia_url is not a field anywhere in this schema (confirmed — it's
+# rejected both inside cookies[] and at session level). The portal URL is
+# derived automatically from each cookie's domain + subdomain instead.
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:
@@ -31,20 +31,13 @@ spec:
         kind: HelmRepository
         name: authelia
   values:
-    # CONFIRMED WRONG, now fixed based on Authelia's own official secrets
-    # docs: there is no top-level `secrets:` convenience block in this
-    # chart version at all (the schema explicitly rejects it). The real,
-    # documented mechanism: any config key ending in key/secret/password/
-    # token/certificate_chain can load from a mounted secret file,
-    # referenced via a `secret:` sub-block sitting right next to that
-    # field — same pattern as the chart's own LDAP-password example.
-    #
-    # This part is my best-confidence reconstruction, not independently
-    # confirmed against the chart schema the way the configMap/pod/ingress
-    # fixes were — if this specific piece still errors, it's the one
-    # remaining thing worth checking directly with
-    # `helm show values authelia/authelia --version 0.11.6` rather than
-    # another round of search-based guessing.
+    # Mounts both real secrets into the pod — this is what makes the
+    # secret_name references below actually resolve to something.
+    secret:
+      mountPath: /secrets
+      additionalSecrets:
+        authelia-core-secrets: {}
+        authelia-postgres-credentials: {}
 
     pod:
       resources:
@@ -53,10 +46,6 @@ spec:
           memory: 64Mi
         limits:
           memory: 256Mi
-      # Confirmed these two fields exist (pod.extraVolumeMounts,
-      # pod.extraVolumes) — not confirmed whether they need to target the
-      # main container by name or apply automatically. If this specific
-      # piece errors, that's the next thing to check.
       extraVolumeMounts:
         - name: users-database
           mountPath: /config/users_database.yml
@@ -67,10 +56,6 @@ spec:
           secret:
             secretName: authelia-users-database
 
-    # No `hosts:` field exists on this chart at all — confirmed directly
-    # from source. rulesOverride is the documented escape hatch for
-    # explicit host/path control instead of relying on auto-derivation
-    # from configMap.session.cookies.
     ingress:
       enabled: true
       className: traefik
@@ -87,20 +72,17 @@ spec:
       identity_validation:
         reset_password:
           jwt_secret:
-            secret:
-              existingSecret: authelia-core-secrets
-              key: jwtSecret
+            secret_name: authelia-core-secrets
+            path: jwtSecret
 
       session:
-        secret:
-          existingSecret: authelia-core-secrets
-          key: sessionSecret
-        # CONFIRMED WRONG in the previous attempt: authelia_url doesn't
-        # belong inside each cookies[] entry — promoted to session-level.
-        authelia_url: "https://auth.home.dakin.im"
-        default_redirection_url: "https://auth.home.dakin.im"
+        encryption_key:
+          secret_name: authelia-core-secrets
+          path: sessionSecret
         cookies:
           - domain: home.dakin.im
+            subdomain: auth
+            default_redirection_url: "https://auth.home.dakin.im"
 
       authentication_backend:
         file:
@@ -120,23 +102,17 @@ spec:
 
       storage:
         encryption_key:
-          secret:
-            existingSecret: authelia-core-secrets
-            key: storageEncryptionKey
+          secret_name: authelia-core-secrets
+          path: storageEncryptionKey
         postgres:
-          address: "authelia-postgres-rw.authelia.svc.cluster.local:5432"
+          enabled: true   # false by default — confirmed easy-to-miss field, caught this time by actually reading the real file
+          address: "tcp://authelia-postgres-rw.authelia.svc.cluster.local:5432"   # tcp:// scheme required per the chart's own address docs
           database: authelia
           username: authelia
           password:
-            secret:
-              existingSecret: authelia-postgres-credentials
-              key: password
+            secret_name: authelia-postgres-credentials
+            path: password
 
-    # CONFIRMED WRONG (storageClassName rejected) — removed the override
-    # entirely rather than guess the field name a second time. The
-    # nfs-client StorageClass is already set as the cluster's default
-    # (infrastructure/storage/nfs-provisioner.yaml), so omitting this
-    # field should still land on nfs-client automatically.
     persistence:
       enabled: true
       size: 1Gi
