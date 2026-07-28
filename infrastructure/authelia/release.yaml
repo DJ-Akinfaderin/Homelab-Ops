@@ -56,15 +56,15 @@ spec:
           secret:
             secretName: authelia-users-database
 
+    # rulesOverride removed — the chart's own docs call it "a discouraged
+    # override," and its path-matching template check was rejecting the
+    # structure used here. The intended, default mechanism is auto-
+    # deriving the ingress host from configMap.session.cookies' domain +
+    # subdomain fields below (home.dakin.im + auth -> auth.home.dakin.im),
+    # which is simpler and avoids this whole class of error.
     ingress:
       enabled: true
       className: traefik
-      rulesOverride:
-        - host: auth.home.dakin.im
-          http:
-            paths:
-              - path: /
-                pathType: Prefix
       tls:
         enabled: true
 
