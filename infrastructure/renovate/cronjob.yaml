@@ -17,7 +17,7 @@ spec:
             - name: renovate
               image: renovate/renovate:latest   # pin to a specific tag once Renovate itself is being managed by... Renovate
               args:
-                - "DJ-Akinfaderin/Homelab-Ops"
+                - "<your-github-username>/homelab-repo"
               envFrom:
                 - secretRef:
                     name: renovate-env

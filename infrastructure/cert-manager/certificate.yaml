@@ -17,7 +17,7 @@ metadata:
 spec:
   secretName: traefik-default-cert-tls
   issuerRef:
-    name: letsencrypt-cloudflare-prod
+    name: letsencrypt-cloudflare-staging
     kind: ClusterIssuer
   dnsNames:
     - "home.dakin.im"

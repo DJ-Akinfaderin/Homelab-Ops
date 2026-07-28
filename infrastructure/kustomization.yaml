@@ -30,6 +30,7 @@ resources:
   - renovate/cronjob.yaml
   - tuppr/release.yaml
   - cert-manager/release.yaml
+  - capacitor/source.yaml
   - capacitor/ingress-tailscale.yaml
   - capacitor/ingress-lan.yaml
   - talos-backup/cronjob.yaml
