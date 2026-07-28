@@ -71,7 +71,7 @@ spec:
     configMap:
       identity_validation:
         reset_password:
-          jwt_secret:
+          secret:
             secret_name: authelia-core-secrets
             path: jwtSecret
 
