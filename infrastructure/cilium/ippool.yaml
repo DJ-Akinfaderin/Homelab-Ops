@@ -19,12 +19,19 @@ kind: CiliumL2AnnouncementPolicy
 metadata:
   name: homelab-l2
 spec:
-  # Confirmed against Cilium's own official docs: this field is
-  # `interfaces` (plural), a list of regex patterns — not `interface`
-  # (singular string), which is what caused the dry-run schema failure.
-  # ^eth0$ matches exactly "eth0" and nothing else; widen to something
-  # like ^eth[0-9]+$ if your nodes' interface names vary.
+  # Confirmed via `talosctl get links` that these nodes use modern
+  # "predictable network interface naming" (enp0s31f6), not the legacy
+  # eth0 convention this was originally written for — that mismatch meant
+  # Cilium correctly held the L2 announcement lease but had zero matching
+  # interfaces to actually announce on, so the LoadBalancer IP silently
+  # never responded to ARP despite everything else showing healthy.
+  #
+  # ^en prefix (rather than the exact confirmed name alone) covers both
+  # this naming convention broadly and the older eth0 style, without risk
+  # of matching any of Cilium's own internal interfaces (cilium_host,
+  # lxc*, veth*, bond0, etc. — none begin with "en"). Safe to leave broad
+  # rather than pin to one exact interface name per node.
   interfaces:
-    - ^eth0$
+    - ^en
   externalIPs: true
   loadBalancerIPs: true
