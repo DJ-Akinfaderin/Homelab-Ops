@@ -31,8 +31,20 @@ spec:
         kind: HelmRepository
         name: authelia
   values:
-    secrets:
-      existingSecret: authelia-core-secrets   # jwtSecret, sessionSecret, storageEncryptionKey
+    # CONFIRMED WRONG, now fixed based on Authelia's own official secrets
+    # docs: there is no top-level `secrets:` convenience block in this
+    # chart version at all (the schema explicitly rejects it). The real,
+    # documented mechanism: any config key ending in key/secret/password/
+    # token/certificate_chain can load from a mounted secret file,
+    # referenced via a `secret:` sub-block sitting right next to that
+    # field — same pattern as the chart's own LDAP-password example.
+    #
+    # This part is my best-confidence reconstruction, not independently
+    # confirmed against the chart schema the way the configMap/pod/ingress
+    # fixes were — if this specific piece still errors, it's the one
+    # remaining thing worth checking directly with
+    # `helm show values authelia/authelia --version 0.11.6` rather than
+    # another round of search-based guessing.
 
     pod:
       resources:
@@ -72,11 +84,23 @@ spec:
         enabled: true
 
     configMap:
+      identity_validation:
+        reset_password:
+          jwt_secret:
+            secret:
+              existingSecret: authelia-core-secrets
+              key: jwtSecret
+
       session:
+        secret:
+          existingSecret: authelia-core-secrets
+          key: sessionSecret
+        # CONFIRMED WRONG in the previous attempt: authelia_url doesn't
+        # belong inside each cookies[] entry — promoted to session-level.
+        authelia_url: "https://auth.home.dakin.im"
+        default_redirection_url: "https://auth.home.dakin.im"
         cookies:
           - domain: home.dakin.im
-            authelia_url: "https://auth.home.dakin.im"
-            default_redirection_url: "https://auth.home.dakin.im"
 
       authentication_backend:
         file:
@@ -94,26 +118,25 @@ spec:
         filesystem:
           filename: /config/notifications.txt
 
-      # UNCONFIRMED beyond this point: whether POSTGRES_PASSWORD actually
-      # reaches this block correctly is still the same open question
-      # flagged before — that's a runtime config-parsing issue distinct
-      # from a Helm schema error, so it would show up differently (a
-      # CrashLoopBackOff with an Authelia startup log message, not a
-      # "Helm install failed" schema rejection). Worth checking pod logs
-      # specifically for this once the schema issues themselves clear.
       storage:
+        encryption_key:
+          secret:
+            existingSecret: authelia-core-secrets
+            key: storageEncryptionKey
         postgres:
           address: "authelia-postgres-rw.authelia.svc.cluster.local:5432"
           database: authelia
           username: authelia
+          password:
+            secret:
+              existingSecret: authelia-postgres-credentials
+              key: password
 
-    # UNCONFIRMED: the exact field name for storage class here wasn't
-    # visible in the portion of the chart source I could fetch (the file
-    # is 3389 lines; I confirmed through ~1000). storageClassName is the
-    # most common convention across Helm charts generally, kept as the
-    # best-available guess — if this specific key is rejected, that's a
-    # narrow, isolated thing to fix next, not a sign the rest is wrong too.
+    # CONFIRMED WRONG (storageClassName rejected) — removed the override
+    # entirely rather than guess the field name a second time. The
+    # nfs-client StorageClass is already set as the cluster's default
+    # (infrastructure/storage/nfs-provisioner.yaml), so omitting this
+    # field should still land on nfs-client automatically.
     persistence:
       enabled: true
-      storageClassName: nfs-client
       size: 1Gi
