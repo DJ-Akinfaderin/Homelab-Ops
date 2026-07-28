@@ -91,7 +91,7 @@ spec:
 
       authentication_backend:
         file:
-          disabled: false   # confirmed required — configuring the file path alone wasn't enough, matches the same disabled-by-default pattern as storage.postgres
+          enabled: true   # confirmed field name from real chart source - matches the ldap.enabled sibling pattern, not 'disabled'
           path: /config/users_database.yml
 
       access_control:
@@ -104,7 +104,7 @@ spec:
 
       notifier:
         filesystem:
-          disabled: false   # same pattern - configuring the filename alone wasn't enough
+          enabled: true   # confirmed field name and default (false) directly from real chart source
           filename: /config/notifications.txt
 
       storage:
