@@ -2,9 +2,9 @@
 # its health is useful internal information, not something to expose on
 # the LAN-facing Traefik path. Private-only via Tailscale.
 #
-# Assumes the chart creates a Service named "gatus" on port 8080 (default
-# per the chart's own docs) — verify with `kubectl get svc -n monitoring`
-# after first install.
+# CONFIRMED via kubectl (was previously an unverified assumption of 8080,
+# which turned out to be wrong and caused a real "service port not found"
+# 404 on the LAN route): the chart's Service is named "gatus" on port 80.
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -16,7 +16,7 @@ spec:
     service:
       name: gatus
       port:
-        number: 8080
+        number: 80
   tls:
     - hosts:
         - gatus   # becomes gatus.<your-tailnet-name>.ts.net

@@ -84,8 +84,13 @@ spec:
     ingress:
       enabled: true
       className: traefik
-      tls:
-        enabled: true
+      # No tls: block, deliberately — matches every other app's ingress
+      # in this repo. tls.enabled: true here made the chart auto-generate
+      # an explicit secretName reference (authelia-tls) that was never
+      # actually created, causing a real, repeating TLS error in Traefik.
+      # Traefik's default cert store (tlsStore.default.defaultCertificate
+      # in infrastructure/traefik/release.yaml) already covers
+      # *.home.dakin.im without needing this at all.
 
     configMap:
       identity_validation:

@@ -29,7 +29,7 @@ spec:
               service:
                 name: gatus
                 port:
-                  number: 8080
+                  number: 80
   tls:
     - hosts:
         - gatus.home.dakin.im
