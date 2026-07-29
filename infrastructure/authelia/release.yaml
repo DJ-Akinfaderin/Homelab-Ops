@@ -39,7 +39,26 @@ spec:
         authelia-core-secrets: {}
         authelia-postgres-credentials: {}
 
+    # ROOT CAUSE of the entire login saga, finally confirmed: this chart
+    # defaults to a DaemonSet (one pod per node) when Redis isn't
+    # configured for session storage. Authelia's default session store is
+    # in-memory and NOT shared between pods — confirmed directly in
+    # Authelia's own docs: "If you do not configure an external provider
+    # for the session configuration it stores the session in memory. This
+    # is unacceptable for the operation of Authelia and is thus not
+    # supported for high availability." With 2 pods and no session
+    # affinity, roughly half of all requests after a successful login hit
+    # a pod that never saw that session — exactly matching every symptom
+    # from tonight (login succeeding via curl/API but /api/state showing
+    # unauthenticated, works intermittently, etc.).
+    #
+    # Fix: force a single instance instead of adding Redis as new
+    # infrastructure — a login portal doesn't need node-level redundancy
+    # here, same reasoning already applied to Garage and CNPG elsewhere in
+    # this repo. If real HA is wanted later, Redis is the documented path.
     pod:
+      kind: Deployment
+      replicas: 1
       resources:
         requests:
           cpu: 50m
