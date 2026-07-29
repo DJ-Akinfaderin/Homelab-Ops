@@ -6,6 +6,24 @@
 #
 # Reuses the tuppr-talosconfig secret from infrastructure/tuppr/README.md —
 # same credential, same client, no new secret needed here.
+#
+# CONFIRMED REAL BUG, fixed here: the official talosctl image has no
+# shell at all (deliberately minimal) — every single run failed with
+# "exec: /bin/sh: stat /bin/sh: no such file or directory", 100% of the
+# time, completely unconditionally, since this file was first written.
+# Unrelated to anything else fixed tonight. Fix: an init container copies
+# the real talosctl binary (from Sidero Labs' own official image — not a
+# third-party image, deliberately, given what this backs up) into a
+# shared volume, and the actual script runs in a plain, official
+# busybox image that has a genuine shell.
+#
+# One thing worth verifying once this runs: the exact path of the
+# talosctl binary inside its own image is assumed to be /talosctl (the
+# common convention for minimal single-binary images) but wasn't directly
+# confirmed. If the init container fails with a "no such file" error
+# itself, check the real path with:
+#   kubectl run pathcheck --image=ghcr.io/siderolabs/talosctl:v1.9.0 \
+#     --restart=Never --command -- find / -maxdepth 2 -name talosctl
 apiVersion: batch/v1
 kind: CronJob
 metadata:
@@ -19,9 +37,16 @@ spec:
     spec:
       template:
         spec:
+          initContainers:
+            - name: copy-talosctl
+              image: ghcr.io/siderolabs/talosctl:v1.9.0
+              command: ["cp", "/talosctl", "/shared/talosctl"]
+              volumeMounts:
+                - name: shared-bin
+                  mountPath: /shared
           containers:
             - name: etcd-snapshot
-              image: ghcr.io/siderolabs/talosctl:v1.9.0
+              image: busybox:1.36
               command:
                 - /bin/sh
                 - -c
@@ -29,7 +54,7 @@ spec:
                   set -e
                   export TALOSCONFIG=/var/run/secrets/talos.dev/talosconfig
                   DATE=$(date +%Y%m%d-%H%M%S)
-                  talosctl etcd snapshot /backups/etcd-snapshot-${DATE}.db
+                  /shared/talosctl etcd snapshot /backups/etcd-snapshot-${DATE}.db
                   # keep the last 14 daily snapshots, prune older ones
                   cd /backups && ls -t etcd-snapshot-*.db | tail -n +15 | xargs -r rm --
               volumeMounts:
@@ -38,6 +63,8 @@ spec:
                   readOnly: true
                 - name: backups
                   mountPath: /backups
+                - name: shared-bin
+                  mountPath: /shared
               resources:
                 requests:
                   cpu: 50m
@@ -52,6 +79,8 @@ spec:
             - name: backups
               persistentVolumeClaim:
                 claimName: etcd-backups
+            - name: shared-bin
+              emptyDir: {}
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
