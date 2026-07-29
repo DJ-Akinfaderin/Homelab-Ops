@@ -62,7 +62,15 @@ spec:
                   chmod +x /tmp/talosctl
                   export TALOSCONFIG=/var/run/secrets/talos.dev/talosconfig
                   DATE=$(date +%Y%m%d-%H%M%S)
-                  /tmp/talosctl etcd snapshot /backups/etcd-snapshot-${DATE}.db
+                  # --nodes/--endpoints explicit, pointed at the control
+                  # plane (where etcd actually runs) — same fix as the
+                  # "failed to determine endpoints" issue hit earlier
+                  # tonight with interactive talosctl usage. The
+                  # tuppr-talosconfig secret apparently doesn't have an
+                  # endpoint baked into its own context, so this can't
+                  # rely on that default. IP is hardcoded — if the
+                  # control plane's address ever changes, update it here.
+                  /tmp/talosctl --nodes 10.70.5.103 --endpoints 10.70.5.103 etcd snapshot /backups/etcd-snapshot-${DATE}.db
                   # keep the last 14 daily snapshots, prune older ones
                   cd /backups && ls -t etcd-snapshot-*.db | tail -n +15 | xargs -r rm --
               volumeMounts:
