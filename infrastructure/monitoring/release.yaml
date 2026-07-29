@@ -26,6 +26,29 @@ spec:
         kind: HelmRepository
         name: prometheus-community
   values:
+    # These three don't apply to this cluster's architecture, permanently,
+    # not just "currently unreachable" — confirmed real, not guessed:
+    # Cilium was deployed with kubeProxyReplacement: true from the start,
+    # so kube-proxy was never installed at all; Talos exposes the
+    # controller-manager and scheduler differently than this chart's
+    # default kubeadm-style scrape config assumes. Disabling both the
+    # scrape attempt (below) and the corresponding alert rules
+    # (defaultRules.rules, further down) — scraping a target that will
+    # never exist just produces TargetDown forever even with the alert
+    # itself silenced, so both layers need to go together for a real fix.
+    kubeControllerManager:
+      enabled: false
+    kubeScheduler:
+      enabled: false
+    kubeProxy:
+      enabled: false
+
+    defaultRules:
+      rules:
+        kubeControllerManager: false
+        kubeScheduler: false
+        kubeProxy: false
+
     prometheus:
       prometheusSpec:
         retention: 7d          # short retention keeps disk/RAM use down
