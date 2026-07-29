@@ -24,6 +24,19 @@
 # itself, check the real path with:
 #   kubectl run pathcheck --image=ghcr.io/siderolabs/talosctl:v1.9.0 \
 #     --restart=Never --command -- find / -maxdepth 2 -name talosctl
+# CONFIRMED REAL BUG (second round): the init-container approach above
+# assumed the talosctl image had at least basic utilities like `cp` —
+# confirmed wrong, it doesn't even have that. This is very likely a true
+# "scratch"-style image containing only the talosctl binary itself, no
+# shell, no coreutils, nothing else at all.
+#
+# Simpler, more robust fix: skip trying to extract anything from that
+# image entirely. Download the official talosctl binary directly from
+# Sidero Labs' own GitHub releases inside busybox (which has `wget` as a
+# standard applet) — same trust source as the container image itself
+# (Sidero Labs' own infrastructure either way), just a different official
+# distribution channel, and it sidesteps the whole "does this image have
+# any utilities at all" question.
 apiVersion: batch/v1
 kind: CronJob
 metadata:
@@ -37,13 +50,6 @@ spec:
     spec:
       template:
         spec:
-          initContainers:
-            - name: copy-talosctl
-              image: ghcr.io/siderolabs/talosctl:v1.9.0
-              command: ["cp", "/talosctl", "/shared/talosctl"]
-              volumeMounts:
-                - name: shared-bin
-                  mountPath: /shared
           containers:
             - name: etcd-snapshot
               image: busybox:1.36
@@ -52,9 +58,11 @@ spec:
                 - -c
                 - |
                   set -e
+                  wget -qO /tmp/talosctl https://github.com/siderolabs/talos/releases/download/v1.9.0/talosctl-linux-amd64
+                  chmod +x /tmp/talosctl
                   export TALOSCONFIG=/var/run/secrets/talos.dev/talosconfig
                   DATE=$(date +%Y%m%d-%H%M%S)
-                  /shared/talosctl etcd snapshot /backups/etcd-snapshot-${DATE}.db
+                  /tmp/talosctl etcd snapshot /backups/etcd-snapshot-${DATE}.db
                   # keep the last 14 daily snapshots, prune older ones
                   cd /backups && ls -t etcd-snapshot-*.db | tail -n +15 | xargs -r rm --
               volumeMounts:
@@ -63,8 +71,6 @@ spec:
                   readOnly: true
                 - name: backups
                   mountPath: /backups
-                - name: shared-bin
-                  mountPath: /shared
               resources:
                 requests:
                   cpu: 50m
@@ -79,8 +85,6 @@ spec:
             - name: backups
               persistentVolumeClaim:
                 claimName: etcd-backups
-            - name: shared-bin
-              emptyDir: {}
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
