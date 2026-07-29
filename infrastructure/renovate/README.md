@@ -21,8 +21,11 @@ your homelab repo.
    `external-secret.yaml` already references `/renovate/GITHUB_TOKEN` — no
    further editing needed once it exists in Infisical.
 
-3. Edit `cronjob.yaml`'s `args` to point at your actual repo
-   (`your-username/homelab-repo`).
+3. `cronjob.yaml`'s `args` already points at the real repo
+   (`DJ-Akinfaderin/Homelab-Ops`) — this was the actual root cause of an
+   earlier `platform-unknown-error` failure (a leftover placeholder,
+   `<your-github-username>/homelab-repo`, was never filled in). Worth
+   double-checking after any future repo rename or transfer.
 
 4. First run: trigger it manually instead of waiting for 3am —
    ```
