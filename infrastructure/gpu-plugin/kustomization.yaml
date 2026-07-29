@@ -1,0 +1,23 @@
+# The confirmed missing piece behind Jellyfin's 28-hour "Insufficient
+# gpu.intel.com/i915" scheduling failure. The Talos siderolabs/i915
+# extension only makes the physical GPU device available on the host —
+# Kubernetes still needs this separate device plugin to actually
+# advertise gpu.intel.com/i915 as an allocatable resource the scheduler
+# can match Jellyfin's request against. That second half was never built.
+#
+# No Node Feature Discovery needed here — NFD exists to auto-detect which
+# nodes have Intel GPUs at runtime, but this cluster already knows
+# statically: both workers (PC2, PC3) share the same schematic with the
+# i915 extension baked in, PC1 doesn't and is tainted against scheduling
+# anyway. The plain DaemonSet (no nodeSelector) naturally only lands on
+# PC2/PC3 — it has no toleration for the control-plane's NoSchedule taint,
+# so it's silently, correctly skipped there.
+#
+# Version pinned to a real, current release tag — verify against
+# https://github.com/intel/intel-device-plugins-for-kubernetes/releases
+# if this ever needs bumping; Renovate won't auto-track a remote kustomize
+# base the way it tracks HelmRelease versions.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - https://github.com/intel/intel-device-plugins-for-kubernetes/deployments/gpu_plugin?ref=v0.30.0
