@@ -35,3 +35,4 @@ resources:
   - capacitor/ingress-lan.yaml
   - talos-backup/cronjob.yaml
   - external-secrets/release.yaml
+  - gpu-plugin/
