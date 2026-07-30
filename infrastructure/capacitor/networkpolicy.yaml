@@ -1,0 +1,30 @@
+# CONFIRMED root cause of Capacitor's Gateway Timeout, after a long
+# investigation that ruled out DNS, Cilium, Authelia, resources, and
+# missing CRDs first: Flux's own bundled NetworkPolicies in this
+# namespace (allow-scraping, allow-egress) were never designed to permit
+# inbound traffic from another namespace to a web-facing app — they exist
+# to protect Flux's own controllers, which normally never receive inbound
+# traffic from anywhere. Capacitor living in flux-system meant it was
+# inadvertently caught by policies that only open port 8080 (Flux's own
+# metrics port) or traffic from within flux-system itself — nothing ever
+# permitted kube-system (where Traefik lives) to reach port 9000.
+#
+# Purely additive — NetworkPolicies OR together, so this doesn't modify
+# or conflict with Flux's own bundled policies at all.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-traefik-to-capacitor
+  namespace: flux-system
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+      ports:
+        - port: 9000
+          protocol: TCP
