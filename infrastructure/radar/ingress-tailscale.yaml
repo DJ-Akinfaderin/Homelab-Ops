@@ -1,4 +1,4 @@
-# Ungated on purpose, matching Gatus and Capacitor's existing Tailscale
+# Ungated on purpose, matching Gatus's existing Tailscale
 # routes — tailnet membership is already a real access control layer, and
 # Authelia specifically protects the LAN path where anyone on home WiFi
 # could otherwise reach it.

@@ -73,7 +73,7 @@ needed.
 clusters/homelab/     Flux Kustomizations (entry points)
 infrastructure/        Cilium, Traefik, NFS storage, monitoring, Tailscale,
                         Renovate, Tuppr, cert-manager,
-                        Capacitor, etcd backups, External Secrets,
+                        etcd backups, External Secrets,
                         VictoriaLogs + Alloy (logs), Gatus (uptime),
                         CloudNativePG, Authelia (SSO)
 apps/base/              One folder per app
@@ -91,7 +91,7 @@ route, DNS not resolving, or — usefully, given the cert-manager wildcard
 cross-checking `CertificateExpiringSoon`'s view from a completely
 different angle. Alerts reuse the exact same Pushover credentials already
 set up for Alertmanager, no new secret needed. Status page is
-Tailscale-only (`gatus.<tailnet>.ts.net`) — same reasoning as Capacitor,
+Tailscale-only (`gatus.<tailnet>.ts.net`) —
 a dashboard listing every app and its health isn't LAN-public information.
 
 ## A note on VictoriaLogs + Alloy (logging)
@@ -147,22 +147,30 @@ apps included. If you want local S3 storage again later (for Velero or
 anything else), it's straightforward to re-add — just make sure whatever
 you add actually gets its required secrets set up, not left "optional."
 
-## A note on Capacitor (Flux dashboard)
-Flux itself has no GUI by design — it's CLI/API-first. Capacitor is the
-Flux project's own official dashboard recommendation (fluxcd.io has
-blogged about it directly), read-only, and installed as an OCI artifact
-reconciled straight by a top-level Flux Kustomization
-(`clusters/homelab/capacitor.yaml`) rather than folded into the usual
-`infrastructure/kustomization.yaml` build — that's the documented install
-path, not a deviation from how everything else here is structured. Access
-is Tailscale-only (`capacitor.<tailnet>.ts.net`), same reasoning as
-Jellyfin/Immich — its RBAC includes reading Secrets, which shouldn't sit
-on the LAN-facing Traefik path even behind auth.
+## A note on Radar (Kubernetes UI / GitOps visibility)
+Originally had Capacitor here as a minimal, read-only Flux dashboard —
+removed after Radar was added, since Radar's own GitOps view covers the
+same ground with more depth (field-level drift detection, stuck-reconcile
+diagnosis, one-click remediation) plus everything else Capacitor didn't
+do at all (resource browsing, topology, RBAC visibility, cluster audit).
+Keeping both meant maintaining a second thing that duplicated a subset of
+what the first already did better — not worth the surface area.
 
-This is a genuinely different installation shape from Flux Operator
-(`FluxInstance`-based, manages Flux's own controllers/upgrades) — this
-repo still bootstraps Flux the classic way, Capacitor is just a viewer on
-top of it.
+Deployed via Helm (`skyhook/radar`), not a raw OCI artifact — every field
+in `infrastructure/radar/release.yaml` is traced directly to the chart's
+real `values.yaml` and its own auth docs, not guessed. Sits behind
+Authelia on the LAN path (`radar.home.dakin.im`) same as Gatus, ungated
+on Tailscale same reasoning as everywhere else — tailnet membership is
+already a real access boundary.
+
+One piece here is genuinely load-bearing, not just config hygiene: the
+`strip-identity-headers` Traefik Middleware in
+`infrastructure/radar/middleware-strip-headers.yaml`. Radar's proxy-auth
+mode trusts whatever `Remote-User`/`Remote-Groups` headers arrive at it —
+without stripping those from external requests first, anyone on the LAN
+could set them directly and impersonate any user, bypassing Authelia
+entirely. Confirmed straight from Radar's own security docs, not an
+assumption.
 
 ## One-time manual steps
 - `infrastructure/external-secrets/README.md` — **do this first**:
@@ -190,7 +198,7 @@ one.
 Authelia protects the Traefik/LAN path specifically — it has no effect on
 the Tailscale path, which already has its own access control (tailnet
 membership). Two apps are behind it (`gatus.home.dakin.im`,
-`capacitor.home.dakin.im`, both `two_factor` policy) — Jellyfin and
+`radar.home.dakin.im`, both `two_factor` policy) — Jellyfin and
 Immich's LAN routes (`jellyfin.home.dakin.im`, `immich.home.dakin.im`)
 deliberately are not, since both already have their own login and
 stacking Authelia on top would just mean logging in twice for no real

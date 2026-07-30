@@ -27,7 +27,7 @@ vs local override).
 
 ## 4. First login
 Visit `https://radar.home.dakin.im`. You should be redirected to
-Authelia's login first (same as Gatus/Capacitor), then land on Radar's
+Authelia's login first (same as Gatus), then land on Radar's
 actual dashboard after authenticating — not a "No Namespace Access"
 screen. If you do see that screen, the `radar-admin-group`
 ClusterRoleBinding didn't apply correctly, or Authelia's `Remote-Groups`

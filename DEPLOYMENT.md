@@ -100,10 +100,10 @@ there, applies to all four hostnames below).
 - [ ] Add DNS resolution (public Cloudflare `A` record, or local
       Pi-hole/router override — your choice, see the linked README) for:
   - [ ] `gatus.home.dakin.im`
-  - [ ] `capacitor.home.dakin.im`
   - [ ] `jellyfin.home.dakin.im`
   - [ ] `immich.home.dakin.im`
   - [ ] `auth.home.dakin.im`
+  - [ ] `radar.home.dakin.im`
 
 ---
 
@@ -145,7 +145,7 @@ for every app:
 |---|---|---|---|
 | Jellyfin | `jellyfin.<tailnet>.ts.net` | `https://jellyfin.home.dakin.im` | No Authelia — own login |
 | Immich | `immich.<tailnet>.ts.net` | `https://immich.home.dakin.im` | No Authelia — own login |
-| Capacitor | `capacitor.<tailnet>.ts.net` | `https://capacitor.home.dakin.im` | LAN route behind Authelia |
+| Radar | `radar.<tailnet>.ts.net` | `https://radar.home.dakin.im` | LAN route behind Authelia |
 | Gatus | `gatus.<tailnet>.ts.net` | `https://gatus.home.dakin.im` | LAN route behind Authelia |
 | Grafana | — | — | Internal only: `kubectl port-forward -n monitoring svc/kube-prometheus-stack-grafana 3000:80` |
 | Authelia | — | `https://auth.home.dakin.im` | The portal itself — LAN only |

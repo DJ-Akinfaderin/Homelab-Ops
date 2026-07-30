@@ -1,4 +1,4 @@
-# Same reasoning as Capacitor: a status dashboard listing every app and
+# A status dashboard listing every app and
 # its health is useful internal information, not something to expose on
 # the LAN-facing Traefik path. Private-only via Tailscale.
 #

@@ -24,13 +24,10 @@ Either way, every future LAN-routed app (not just Gatus) needs the same
 resolution to work — worth deciding once which option you want, since
 it'll apply to anything else you add to the Traefik path later.
 
-**Update:** `capacitor.home.dakin.im` (infrastructure/capacitor/ingress-lan.yaml)
-now needs the same treatment — add it alongside `gatus.home.dakin.im`,
-same option (A or B) you picked above.
+**Update:** `jellyfin.home.dakin.im` and `immich.home.dakin.im` too —
+same treatment, same option.
 
-**Update 2:** `jellyfin.home.dakin.im` and `immich.home.dakin.im` too —
-same treatment, same option. Four hostnames total now needing the same
-resolution: gatus, capacitor, jellyfin, immich.
-
-**Update 3:** `radar.home.dakin.im` — same treatment. Five hostnames now:
-gatus, capacitor, jellyfin, immich, radar.
+**Update 2:** `radar.home.dakin.im` — same treatment. Four hostnames now
+needing this resolution: gatus, jellyfin, immich, radar. (Capacitor was
+removed after Radar's GitOps view made it redundant — no longer needs a
+DNS entry.)
