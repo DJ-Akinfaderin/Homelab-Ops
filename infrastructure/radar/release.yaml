@@ -42,6 +42,16 @@ spec:
     # of the box, no changes needed there.
     rbac:
       create: true
+      # Enabled deliberately, not the chart's default (false) — this is a
+      # genuinely broad grant, confirmed from the chart's own docs: "grants
+      # create/update/patch/delete on all resource types, since Helm charts
+      # can create any kind of Kubernetes resource." Also required just to
+      # VIEW Helm releases at all, not only to write to them — Helm stores
+      # release state as Secrets, and reading those needs this same toggle
+      # (it auto-enables secrets read access). podExec, viewRBAC, and
+      # portForward are still left at their safe false defaults —
+      # enabling Helm doesn't imply enabling those too.
+      helm: true
 
     # SQLite persistence, confirmed required fields: persistence.enabled
     # must be true (chart docs: "Required when timeline.storage is

@@ -39,13 +39,15 @@ in `infrastructure/authelia`'s `users_database.yml` in Infisical).
   Authelia's DaemonSet issue earlier, this chart refuses to even start
   with more than one replica when SQLite persistence is enabled, so this
   specific category of bug can't recur here.
-- **Write/exec capability is off by default** — `podExec`, `secrets`,
-  `helm`, and `viewRBAC` were all left at the chart's own safe defaults
-  (`false`). Radar can browse, view logs, and show topology, but can't
-  exec into pods or view Secret values as currently configured. If you
-  want more capability later, these are explicit opt-ins in
-  `infrastructure/radar/release.yaml`'s `rbac:` block — enable
-  deliberately, not by default.
+- **`podExec`, `secrets`, and `viewRBAC` are off by default** — Radar can
+  browse, view logs, and show topology, but can't exec into pods or view
+  Secret/RBAC-object values as currently configured. `helm` was enabled
+  deliberately (see the comment in `release.yaml`'s `rbac:` block) — it's
+  a genuinely broad grant (create/update/patch/delete on all resource
+  types, plus cluster-wide Secrets read), not narrowly scoped to "Helm
+  stuff," since Helm itself can create anything. The remaining toggles
+  stay off; enable individually and deliberately if needed later, same
+  reasoning.
 - **The `strip-identity-headers` Traefik Middleware is not optional** —
   it's what prevents anyone on your LAN from spoofing the `Remote-User`/
   `Remote-Groups` headers and impersonating a user. Both are chained on
