@@ -20,3 +20,28 @@ spec:
   prune: true
   wait: true
   timeout: 5m
+  # Revised after a second independent real-world config confirmed the
+  # first: both agree on a 2Gi memory LIMIT specifically (different
+  # requests, same ceiling) and both set explicit ephemeral-storage
+  # limits — neither of which the original patch included. Two
+  # independent sources converging on the same ceiling is a real signal
+  # that Capacitor's actual peak usage under load approaches that range;
+  # the original 768Mi limit here risked an OOM-kill at exactly the
+  # moment of heavy event processing, which would explain continued
+  # instability even after a partial fix. Request kept modest — the
+  # limit is what actually matters here.
+  patches:
+    - target:
+        kind: Deployment
+        name: capacitor
+      patch: |
+        - op: replace
+          path: /spec/template/spec/containers/0/resources
+          value:
+            requests:
+              cpu: 50m
+              memory: 100Mi
+              ephemeral-storage: 1Gi
+            limits:
+              memory: 2Gi
+              ephemeral-storage: 2Gi
