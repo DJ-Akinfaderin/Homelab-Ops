@@ -1,0 +1,6 @@
+secrets.yaml
+talosconfig
+controlplane.yaml
+worker.yaml
+authelia-values.yaml
+.DS_Store
