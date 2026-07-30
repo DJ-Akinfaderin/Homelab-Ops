@@ -1,0 +1,26 @@
+# Order matters: strip-identity-headers MUST run before Authelia's own
+# middleware — strip any spoofed header first, then let Authelia add the
+# real one only after actual authentication succeeds.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: radar-lan
+  namespace: radar
+  annotations:
+    traefik.ingress.kubernetes.io/router.middlewares: radar-strip-identity-headers@kubernetescrd,authelia-authelia@kubernetescrd
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: radar.home.dakin.im
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: radar
+                port:
+                  number: 9280
+  tls:
+    - hosts:
+        - radar.home.dakin.im

@@ -31,3 +31,6 @@ same option (A or B) you picked above.
 **Update 2:** `jellyfin.home.dakin.im` and `immich.home.dakin.im` too —
 same treatment, same option. Four hostnames total now needing the same
 resolution: gatus, capacitor, jellyfin, immich.
+
+**Update 3:** `radar.home.dakin.im` — same treatment. Five hostnames now:
+gatus, capacitor, jellyfin, immich, radar.

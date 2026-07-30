@@ -37,3 +37,7 @@ resources:
   - talos-backup/cronjob.yaml
   - external-secrets/release.yaml
   - gpu-plugin/
+  - radar/release.yaml
+  - radar/ingress-lan.yaml
+  - radar/ingress-tailscale.yaml
+  - radar/clusterrolebinding.yaml

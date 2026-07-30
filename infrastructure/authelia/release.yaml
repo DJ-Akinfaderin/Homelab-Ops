@@ -125,6 +125,8 @@ spec:
             policy: two_factor
           - domain: "capacitor.home.dakin.im"
             policy: two_factor
+          - domain: "radar.home.dakin.im"
+            policy: two_factor
 
       notifier:
         filesystem:

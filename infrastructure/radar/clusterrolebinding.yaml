@@ -1,0 +1,23 @@
+# Required, not optional — confirmed from Radar's own docs: it delegates
+# authorization entirely to real K8s RBAC via impersonation, discovering
+# accessible namespaces via SubjectAccessReview. Without a binding
+# matching the group Authelia actually sends, login succeeds but the
+# dashboard shows "No Namespace Access" for every namespace.
+#
+# Binds K8s Group "admin" (matching the group in
+# infrastructure/authelia's users_database.yml) to cluster-admin. This
+# isn't a privilege escalation — the account already holds full
+# cluster-admin via its own kubeconfig; this just makes that same,
+# already-held access reachable through Radar's UI too.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: radar-admin-group
+subjects:
+  - kind: Group
+    name: admin
+    apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: ClusterRole
+  name: cluster-admin
+  apiGroup: rbac.authorization.k8s.io

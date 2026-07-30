@@ -51,3 +51,8 @@ apiVersion: v1
 kind: Namespace
 metadata:
   name: authelia
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: radar
+---

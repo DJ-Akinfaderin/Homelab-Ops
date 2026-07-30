@@ -126,3 +126,11 @@ metadata:
 spec:
   interval: 1h
   url: https://victoriametrics.github.io/helm-charts
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmRepository
+metadata:
+  name: skyhook
+  namespace: radar
+spec:
+  interval: 1h
+  url: https://skyhook-io.github.io/helm-charts

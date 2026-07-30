@@ -42,6 +42,10 @@ resources:
 
   # traefik.io CRDs, from traefik/release.yaml
   - ../infrastructure/authelia/middleware.yaml
+  - ../infrastructure/radar/middleware-strip-headers.yaml
 
   # postgresql.cnpg.io CRDs, from cnpg/release.yaml
   - ../infrastructure/authelia/postgres-cluster.yaml
+
+  # external-secrets.io CRDs, from external-secrets/release.yaml
+  - ../infrastructure/radar/external-secret.yaml

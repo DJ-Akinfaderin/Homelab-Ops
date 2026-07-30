@@ -1,0 +1,94 @@
+# Every value below is confirmed directly against the chart's real
+# deploy/helm/radar/values.yaml and docs/authentication.md — not guessed,
+# given how costly guessing at chart schemas proved to be elsewhere in
+# this repo tonight.
+#
+# Single replica is the chart's own hard requirement, not a homelab-scale
+# choice: "Radar is designed to run as a single replica... The chart
+# hard-fails replicaCount > 1 when persistence+sqlite are enabled." Same
+# underlying category of bug that took hours to diagnose with Authelia's
+# DaemonSet — this chart protects against it directly.
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: radar
+  namespace: radar
+spec:
+  interval: 1h
+  chart:
+    spec:
+      chart: radar
+      version: ">=0.1.0 <1.0.0"
+      sourceRef:
+        kind: HelmRepository
+        name: skyhook
+  values:
+    replicaCount: 1
+
+    resources:
+      requests:
+        cpu: 50m
+        memory: 128Mi
+      limits:
+        memory: 512Mi
+
+    # RBAC left at the chart's own safe defaults — podExec, secrets, helm,
+    # and viewRBAC all default to false already. Deliberately not opting
+    # into write/exec capability here; Authelia protects the login, but
+    # least-privilege on top of that is still worth keeping. podLogs and
+    # metrics stay on (the chart's own defaults call these safe/read-only).
+    # crdGroups.flux/certManager/traefik/externalSecrets/cloudnativePg all
+    # default true already — genuinely well-aligned with this stack out
+    # of the box, no changes needed there.
+    rbac:
+      create: true
+
+    # SQLite persistence, confirmed required fields: persistence.enabled
+    # must be true (chart docs: "Required when timeline.storage is
+    # sqlite — readOnlyRootFilesystem prevents local writes"). Sized well
+    # below the chart's own "busy cluster" reference point (~15Gi/7d) —
+    # this is a homelab, not a 5k-resource production cluster.
+    timeline:
+      storage: sqlite
+      dbPath: /data/timeline.db
+      retention: 168h
+
+    persistence:
+      enabled: true
+      storageClassName: nfs-client
+      accessMode: ReadWriteOnce
+      size: 2Gi
+
+    service:
+      type: ClusterIP
+      port: 9280
+
+    # Proxy mode — confirmed compatible with Authelia's ForwardAuth
+    # directly from the chart's own docs ("any auth proxy that sets
+    # forwarded headers... oauth2-proxy, Pomerium, Authelia"). Header
+    # names overridden from the chart's defaults (X-Forwarded-User/
+    # X-Forwarded-Groups) to match what Authelia's middleware actually
+    # sends (Remote-User/Remote-Groups, confirmed in
+    # infrastructure/authelia/middleware.yaml's authResponseHeaders).
+    #
+    # Security-critical, confirmed from the chart's own docs: "Your
+    # ingress must strip X-Forwarded-User and X-Forwarded-Groups headers
+    # from external requests to prevent spoofing." Since the actual
+    # headers in use here are Remote-User/Remote-Groups, those are the
+    # ones stripped — see middleware-strip-headers.yaml, chained before
+    # Authelia's own middleware on both ingresses.
+    auth:
+      mode: proxy
+      existingSecret: radar-auth-secret
+      existingSecretKey: auth-secret
+      cookieTTL: "4h"
+      proxy:
+        userHeader: "Remote-User"
+        groupsHeader: "Remote-Groups"
+
+    # Disabled per the chart's own comment: "useful when deployed behind
+    # authentication" — MCP is a separate access path that doesn't
+    # obviously go through the same proxy-auth gate as the main UI. Not
+    # something asked for anyway; safer to leave off given the ambiguity.
+    mcp:
+      enabled: false

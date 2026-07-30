@@ -1,0 +1,26 @@
+# Confirmed required directly from Radar's own docs: "Your ingress must
+# strip X-Forwarded-User and X-Forwarded-Groups headers from external
+# requests to prevent spoofing." Since this deployment uses Remote-User/
+# Remote-Groups (matching Authelia's actual header names, not Radar's
+# defaults), those are the ones stripped here instead.
+#
+# Without this, anyone on the LAN could set these headers themselves in
+# a raw request and impersonate any user — completely bypassing Authelia.
+# Setting a header's value to empty string in Traefik's
+# customRequestHeaders is what actually strips it from the request.
+#
+# Order matters on the Ingress: this middleware must run BEFORE
+# Authelia's own ForwardAuth middleware, so any spoofed header is removed
+# first, then Authelia adds the real one after actual authentication.
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: strip-identity-headers
+  namespace: radar
+spec:
+  headers:
+    customRequestHeaders:
+      Remote-User: ""
+      Remote-Groups: ""
+      Remote-Email: ""
+      Remote-Name: ""
