@@ -12,31 +12,35 @@ spec:
       sourceRef:
         kind: HelmRepository
         name: tuppr
+  install:
+    remediation:
+      retries: 3
+  upgrade:
+    cleanupOnFail: true
+    # Confirmed real gap from comparing against a working reference on
+    # the same chart version (0.4.3): Helm doesn't update CRDs on
+    # upgrade by default. Given how much this chart's schema has evolved
+    # (the original bug this whole saga started with was reported at
+    # v0.0.45), stale CRDs from an earlier attempt were a real, plausible
+    # contributor worth ruling out.
+    crds: CreateReplace
+    remediation:
+      retries: 3
+  uninstall:
+    keepHistory: false
   values:
-    controller:
-      leaderElection:
-        enabled: true
-      # CONFIRMED fix for a real, known upstream bug — home-operations/
-      # tuppr#50, closed via a fix that (based on the exact error path
-      # still hit here, /home/nonroot/.talos) only covered the per-node
-      # upgrade Job case, not the controller Deployment's own startup
-      # client creation. talosctl/the Talos SDK falls back to creating
-      # ~/.talos when TALOSCONFIG isn't set, which fails outright on this
-      # read-only-root-filesystem pod. The secret IS already correctly
-      # mounted at this path (confirmed in the pod spec) — this just
-      # tells the client where to actually look, same fix the issue
-      # reporter used via a Kyverno mutation policy, done natively here
-      # instead since it's simpler and avoids a new dependency.
-      env:
-        - name: TALOSCONFIG
-          value: /var/run/secrets/talos.dev/talosconfig
-    rbac:
-      create: true
-    # Admission webhook validates TalosUpgrade/KubernetesUpgrade CRs on
-    # creation, but needs cert-manager for its TLS cert — which isn't in
-    # this stack. Left off to avoid pulling in a new dependency just for
-    # this; the controller works fine without it, you just lose CR-level
-    # input validation. Revisit if cert-manager gets added for other
-    # reasons later.
+    # Deliberately minimal now, matching a confirmed-working reference
+    # config on this exact chart version — removed controller.env
+    # (TALOSCONFIG), controller.leaderElection, and rbac.create, none of
+    # which that working config sets either. The TALOSCONFIG env var fix
+    # was based on a real GitHub issue (tuppr#50), but that reference
+    # config runs the same version successfully without it — meaning
+    # either the underlying bug was actually fully fixed by 0.4.3 and my
+    # fix was chasing stale information, or one of the OTHER fields
+    # removed here was itself the actual problem (a stale field from an
+    # earlier chart schema silently doing something unexpected rather
+    # than being safely ignored). Rather than keep layering guesses on
+    # top of guesses, starting from what's proven to work and adding
+    # back only what's confirmed necessary.
     webhook:
       enabled: false
