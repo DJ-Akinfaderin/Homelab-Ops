@@ -10,32 +10,26 @@ actual running nodes directly:
 ```
 talosctl --talosconfig ./talosconfig patch mc \
   --endpoints 10.70.5.103 \
-  --nodes 10.70.5.103,10.70.5.81,10.70.5.208 \
+  --nodes 10.70.5.103 \
   --patch @talos/patches/kubernetes-talos-api-access.yaml
 ```
 
-(`--endpoints` is the control plane specifically — the single, reliable
-connection point talosctl talks to, which then proxies the actual patch
-out to each node listed in `--nodes`. Same pattern as every other
-multi-node talosctl command in this repo — `--nodes` alone isn't
-sufficient, matching the "failed to determine endpoints" issue hit
-earlier with the etcd-snapshot job.)
+(Control plane only — confirmed directly from Talos itself, which
+rejects this outright on worker nodes: "feature Kubernetes Talos API
+Access can only be enabled on control plane machines." The control
+plane's Talos API serves this regardless of which node a calling pod
+runs on; workers never needed the patch at all.)
 
 (All three nodes — the controller pod and tuppr's per-node upgrade Jobs
 can each land on different nodes over the course of an upgrade, so every
 node needs this, not just wherever the controller happens to run today.)
 
-Verify it actually took before moving on — check each node individually,
-`--endpoints` matching `--nodes` this time since each command targets
-just one node directly:
+Verify it actually took before moving on:
 ```
 talosctl --talosconfig ./talosconfig get machineconfig --endpoints 10.70.5.103 --nodes 10.70.5.103 -o yaml | grep -A5 kubernetesTalosAPIAccess
-talosctl --talosconfig ./talosconfig get machineconfig --endpoints 10.70.5.81 --nodes 10.70.5.81 -o yaml | grep -A5 kubernetesTalosAPIAccess
-talosctl --talosconfig ./talosconfig get machineconfig --endpoints 10.70.5.208 --nodes 10.70.5.208 -o yaml | grep -A5 kubernetesTalosAPIAccess
 ```
-Should show `enabled: true` on all three — if any show nothing, that
-node's patch didn't apply and tuppr's HelmRelease will still fail with
-the original error for operations touching that node specifically.
+Should show `enabled: true`. If it doesn't, tuppr's HelmRelease will
+still fail with the original `ServiceAccount`/`talos.dev` error.
 
 ## 2. The talosconfig secret
 

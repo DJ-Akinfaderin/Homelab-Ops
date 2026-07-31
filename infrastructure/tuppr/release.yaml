@@ -16,6 +16,20 @@ spec:
     controller:
       leaderElection:
         enabled: true
+      # CONFIRMED fix for a real, known upstream bug — home-operations/
+      # tuppr#50, closed via a fix that (based on the exact error path
+      # still hit here, /home/nonroot/.talos) only covered the per-node
+      # upgrade Job case, not the controller Deployment's own startup
+      # client creation. talosctl/the Talos SDK falls back to creating
+      # ~/.talos when TALOSCONFIG isn't set, which fails outright on this
+      # read-only-root-filesystem pod. The secret IS already correctly
+      # mounted at this path (confirmed in the pod spec) — this just
+      # tells the client where to actually look, same fix the issue
+      # reporter used via a Kyverno mutation policy, done natively here
+      # instead since it's simpler and avoids a new dependency.
+      env:
+        - name: TALOSCONFIG
+          value: /var/run/secrets/talos.dev/talosconfig
     rbac:
       create: true
     # Admission webhook validates TalosUpgrade/KubernetesUpgrade CRs on

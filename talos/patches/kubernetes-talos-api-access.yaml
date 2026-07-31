@@ -6,11 +6,15 @@
 # anywhere in this build — tuppr's chart assumes it's already there as a
 # prerequisite, it doesn't enable it for you.
 #
-# Applied cluster-wide (all 3 nodes), not just workers — tuppr's
-# controller pod and its per-node upgrade Jobs can land on different
-# nodes over the course of an upgrade, and every node whose Talos API a
-# pod might need to reach needs this enabled, not just wherever the
-# controller happens to be scheduled right now.
+# CONTROL-PLANE ONLY — confirmed directly from Talos itself, which
+# rejects this outright on worker nodes: "feature Kubernetes Talos API
+# Access can only be enabled on control plane machines." Originally
+# assumed this needed applying to all 3 nodes (reasoning: the controller
+# pod or per-node upgrade Jobs could land on any node) — wrong. The
+# control plane's Talos API serves this regardless of which node the
+# calling pod runs on; only the control plane needs the patch. With one
+# control-plane node in this cluster (10.70.5.103), that's the only
+# target.
 #
 # os:admin is the role tuppr's own docs specify — it needs real
 # write/upgrade capability, not just read access. allowedKubernetesNamespaces
