@@ -66,3 +66,19 @@ spec:
                 value:
                   name: talos-home
                   mountPath: /home/nonroot/.talos
+              # Real progress from the emptyDir fix alone: the mkdir
+              # crash is fully gone, confirmed via fresh logs — but it
+              # revealed the actual remaining problem underneath. The
+              # client was falling back to its default path, and once
+              # that path became writable, it just found/created an
+              # EMPTY file there instead of ever reading the real,
+              # already-correctly-mounted secret at
+              # /var/run/secrets/talos.dev/talosconfig. This explicitly
+              # points it at the real file. Appending to the existing env
+              # array (CONTROLLER_NAMESPACE etc. are already there,
+              # confirmed via kubectl) rather than replacing it.
+              - op: add
+                path: /spec/template/spec/containers/0/env/-
+                value:
+                  name: TALOSCONFIG
+                  value: /var/run/secrets/talos.dev/talosconfig
