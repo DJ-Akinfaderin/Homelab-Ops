@@ -29,18 +29,40 @@ spec:
   uninstall:
     keepHistory: false
   values:
-    # Deliberately minimal now, matching a confirmed-working reference
-    # config on this exact chart version — removed controller.env
-    # (TALOSCONFIG), controller.leaderElection, and rbac.create, none of
-    # which that working config sets either. The TALOSCONFIG env var fix
-    # was based on a real GitHub issue (tuppr#50), but that reference
-    # config runs the same version successfully without it — meaning
-    # either the underlying bug was actually fully fixed by 0.4.3 and my
-    # fix was chasing stale information, or one of the OTHER fields
-    # removed here was itself the actual problem (a stale field from an
-    # earlier chart schema silently doing something unexpected rather
-    # than being safely ignored). Rather than keep layering guesses on
-    # top of guesses, starting from what's proven to work and adding
-    # back only what's confirmed necessary.
+    # Deliberately minimal, matching a confirmed-working reference config
+    # on this exact chart version — removed controller.env (TALOSCONFIG),
+    # controller.leaderElection, and rbac.create from an earlier attempt,
+    # none of which that working config sets either, and none of which
+    # fixed the actual crash on their own.
     webhook:
       enabled: false
+  # The actual fix, credited to a much better approach than guessing at
+  # values.yaml field names (tried twice, both wrong): patch the chart's
+  # RENDERED output directly via Flux's postRenderers, rather than
+  # depend on the chart exposing this as a configurable value at all.
+  # The pod's error is completely literal — "mkdir /home/nonroot/.talos:
+  # read-only file system" — so make that exact directory writable via a
+  # small emptyDir, sidestepping whatever internal env var/flag would
+  # otherwise redirect it.
+  #
+  # Using the /-  JSON Patch "append" syntax, not a plain path replace —
+  # the Deployment already has a real volumes array (the talosconfig
+  # secret mount, confirmed from `kubectl describe pod` earlier) that a
+  # naive `add` targeting the whole array would silently wipe out.
+  postRenderers:
+    - kustomize:
+        patches:
+          - target:
+              kind: Deployment
+              name: tuppr
+            patch: |
+              - op: add
+                path: /spec/template/spec/volumes/-
+                value:
+                  name: talos-home
+                  emptyDir: {}
+              - op: add
+                path: /spec/template/spec/containers/0/volumeMounts/-
+                value:
+                  name: talos-home
+                  mountPath: /home/nonroot/.talos

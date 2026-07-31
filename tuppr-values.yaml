@@ -1,0 +1,231 @@
+Pulled: ghcr.io/home-operations/charts/tuppr:0.4.3
+Digest: sha256:50a6ca2d61f296e1fb0fab6afa052130093084e94356a3f375138c6086a5882d
+---
+# Default values for tuppr — the Talos Linux upgrade controller.
+
+# -- Number of controller replicas (only one is active at a time via leader election).
+replicaCount: 1
+image:
+  # -- Image repository.
+  repository: ghcr.io/home-operations/tuppr
+  # -- Image pull policy.
+  pullPolicy: IfNotPresent
+  # -- Overrides the image tag; defaults to the chart appVersion.
+  tag: ""
+  # Pins the image by digest (sha256:…). When set it takes precedence over tag;
+  # the release pipeline fills it with the published image's digest.
+
+  # -- Pin the image by digest (sha256:…); when set, overrides the tag.
+  digest: "sha256:d50f298e00192c447f284cc3581beb45984d67e0235368c7aa3598dac2e4cde1"
+# -- Image pull secrets for private registries.
+imagePullSecrets: []
+# - name: my-registry-secret
+
+# -- Override the chart name used in resource names.
+nameOverride: ""
+# -- Override the full release name.
+fullnameOverride: ""
+serviceAccount:
+  # -- Create a ServiceAccount.
+  create: true
+  # -- Automount the API token (on by default: the controller talks to the cluster API).
+  automount: true
+  # -- Annotations for the ServiceAccount (e.g. workload-identity bindings).
+  annotations: {}
+  # -- ServiceAccount name; generated from the release name if empty.
+  name: ""
+talosServiceAccount:
+  # -- Create the talos.dev/v1alpha1 ServiceAccount that makes Talos generate the
+  # `<name>-talosconfig` Secret the controller mounts. Requires the Talos
+  # API-access CRD (a real Talos cluster). Set false on non-Talos clusters (e.g.
+  # e2e/kind) and provide that Secret yourself.
+  create: true
+# -- Annotations added to the Deployment (e.g. for reloader).
+deploymentAnnotations: {}
+# -- Annotations added to the pod.
+podAnnotations: {}
+# -- Labels added to the pod.
+podLabels: {}
+# -- Pod-level securityContext (runs as non-root uid/gid 65532).
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 65532
+  runAsGroup: 65532
+  fsGroup: 65532
+  # Required by the PodSecurity "restricted" profile (org chart standard).
+  seccompProfile:
+    type: RuntimeDefault
+# -- Extra environment variables passed to the container.
+env: []
+# - name: FOO
+#   value: bar
+
+# Upgrade notifications are delivered via apprise-go. The referenced Secret must
+# hold an apprise URL; see https://github.com/unraid/apprise-go for the supported
+# services and URL schemes.
+notification:
+  # -- Enable upgrade notifications.
+  enabled: false
+  # -- Name of the Secret holding the notification (apprise) URL.
+  secretName: ""
+  # -- Key within the Secret holding the notification URL.
+  secretKey: url
+  # -- Go template for the notification title; empty uses the built-in default. Helpers are the go-sprout/sprout safe set (e.g. `toUpper`); fields are `.Node`, `.CurrentVersion`, `.TargetVersion`, `.Plan`.
+  titleTemplate: ""
+  # -- Go template for the notification message; empty uses the built-in default. Same helpers and fields as titleTemplate.
+  messageTemplate: ""
+# Alertmanager silences held while upgrades run. Which alerts get silenced is
+# per-resource and user-authored (`spec.silences` on a TalosUpgrade); this only
+# configures how the operator reaches Alertmanager.
+silences:
+  # -- Enable upgrade-run silences.
+  enabled: false
+  alertmanager:
+    # -- Alertmanager base URL (e.g. http://alertmanager.monitoring.svc:9093). Anything speaking the v2 silences API works (VMAlertmanager, Grafana-managed alerting behind its prefix).
+    address: ""
+    # -- Name of a Secret whose keys/values are sent as HTTP headers on every Alertmanager request (e.g. Authorization, X-Scope-OrgID).
+    secretName: ""
+# -- Container securityContext (no privilege escalation, read-only root filesystem, drops ALL capabilities).
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  runAsUser: 65532
+service:
+  # -- Service type.
+  type: ClusterIP
+  # -- Service port for general access.
+  port: 8080
+# -- Pod resource requests/limits.
+resources: {}
+# limits:
+#   cpu: 500m
+#   memory: 128Mi
+# requests:
+#   cpu: 10m
+#   memory: 64Mi
+
+# -- Liveness probe.
+livenessProbe:
+  httpGet:
+    path: /healthz
+    port: metrics
+  initialDelaySeconds: 15
+  periodSeconds: 20
+# -- Readiness probe.
+readinessProbe:
+  httpGet:
+    path: /readyz
+    port: metrics
+  initialDelaySeconds: 5
+  periodSeconds: 10
+# -- Additional volumes on the Deployment.
+volumes: []
+# - name: foo
+#   secret:
+#     secretName: mysecret
+
+# -- Additional volume mounts on the container.
+volumeMounts: []
+# - name: foo
+#   mountPath: /etc/foo
+#   readOnly: true
+
+# -- Priority class name for pod scheduling.
+priorityClassName: system-node-critical
+# -- Node selector for pod scheduling.
+nodeSelector: {}
+# -- Tolerations for pod scheduling (defaults keep the controller schedulable on control-plane and cordoned nodes so it can uncordon after an upgrade reboot).
+tolerations:
+  - key: CriticalAddonsOnly
+    operator: Exists
+  - key: node-role.kubernetes.io/control-plane
+    operator: Exists
+    effect: NoSchedule
+  - key: node.kubernetes.io/unschedulable
+    operator: Exists
+    effect: NoSchedule
+# -- Affinity rules for pod scheduling.
+affinity: {}
+# Controller runtime configuration.
+controller:
+  # -- Controller log level: info or debug.
+  logLevel: debug # TODO: switch to info once there is a stable release
+  leaderElection:
+    # -- Enable leader election (recommended; only one controller is active at a time).
+    enabled: true
+  metrics:
+    # -- Operational port: /metrics plus the /healthz and /readyz probes (plain HTTP;
+    # always on — restrict with a NetworkPolicy rather than disabling).
+    port: 8081
+    # -- Annotations for the metrics Service.
+    annotations: {}
+webhook:
+  # -- Enable the admission webhooks for validation.
+  enabled: true
+  # -- Webhook server port.
+  port: 9443
+  # -- Annotations for the webhook Service.
+  annotations: {}
+rbac:
+  # -- Create the ClusterRole + ClusterRoleBinding the controller needs to manage nodes and jobs.
+  create: true
+  # -- Annotations for the RBAC resources.
+  annotations: {}
+monitoring:
+  serviceMonitor:
+    # -- Create a Prometheus Operator ServiceMonitor (requires its CRDs).
+    enabled: false
+    # -- Scrape interval.
+    interval: 30s
+    # -- Scrape timeout.
+    scrapeTimeout: 10s
+    # -- Metrics path.
+    path: /metrics
+    # -- ServiceMonitor labels.
+    labels: {}
+    # -- ServiceMonitor annotations.
+    annotations: {}
+    # -- Prometheus metric relabelings.
+    metricRelabelings: []
+    # -- Prometheus relabelings (applied before scraping).
+    relabelings: []
+    # -- Target labels to copy from the Service.
+    targetLabels: []
+    # -- Pod target labels to copy from pods.
+    podTargetLabels: []
+  prometheusRule:
+    # -- Create a PrometheusRule with alerting rules.
+    enabled: false
+    # -- PrometheusRule annotations.
+    annotations: {}
+    # -- PrometheusRule labels.
+    labels: {}
+    # -- Extra labels added to every alert rule.
+    additionalRuleLabels: {}
+    # -- Extra annotations added to every alert rule.
+    additionalRuleAnnotations: {}
+  dashboards:
+    # -- Render the Grafana dashboard ConfigMap (for grafana-operator or the kube-prometheus-stack sidecar).
+    enabled: false
+    # -- Namespace for the dashboard objects; defaults to the release namespace.
+    namespace: ""
+    # -- Annotations added to the dashboard ConfigMap.
+    annotations: {}
+    # -- Labels added to the dashboard ConfigMap.
+    labels: {}
+    grafanaOperator:
+      # -- Render a GrafanaDashboard CR (grafana-operator) instead of a sidecar ConfigMap.
+      enabled: false
+      # -- If true allows for a Grafana in any namespace to access this GrafanaDashboard.
+      allowCrossNamespaceImport: true
+      # -- Folder to create the dashboard in.
+      folder: ""
+      # -- Resync period for the Grafana operator to check for updates to the dashboard.
+      resyncPeriod: "10m"
+      # -- Selected labels for Grafana instance.
+      matchLabels: {}
+
