@@ -14,19 +14,19 @@
 # to start (missing Secret) would permanently block this entire
 # Kustomization, which blocks Phase 2, which is the only thing that could
 # ever create the missing Secret in the first place — a genuine deadlock,
-# not a timing issue.
+# # not a timing issue.
 #
-# A THIRD incident: tuppr's HelmRelease has a real, unfixed chart error
-# (ServiceAccount/talos.dev schema issue — see infrastructure/tuppr's
-# history). Since it was in this healthChecks list, its permanent failure
-# meant `infrastructure` could never reach Ready at all — not a timing
-# problem, a genuine standing block. Removed until tuppr's actual fix is
-# in — its CRDs aren't needed elsewhere in Phase 1, only by
-# infrastructure-config/tuppr/upgrades.yaml, which was pulled out of
-# Phase 2 for the same reason (if tuppr's release failed completely, its
-# CRDs likely never registered, which would've made THAT dry-run fail the
-# same way cert-manager's did in the very first incident tonight). Add
-# both back once tuppr's chart values are actually fixed.
+# A THIRD incident happened here earlier: tuppr's HelmRelease was failing
+# with a real chart error (ServiceAccount/talos.dev schema issue) that
+# turned out to be a genuine infrastructure gap, not a chart bug — the
+# machine config feature its ServiceAccount CR depends on
+# (kubernetesTalosAPIAccess) was never enabled anywhere in this cluster.
+# See talos/patches/kubernetes-talos-api-access.yaml for the actual fix.
+# Re-added here now that it's confirmed working — Phase 2's
+# infrastructure-config/tuppr/upgrades.yaml depends on tuppr's CRDs
+# actually being registered, same reasoning as the other 6 apps in this
+# list; without this, there'd be a real race risk of Phase 2 trying to
+# apply TalosUpgrade/KubernetesUpgrade CRs before those CRDs exist.
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata:
@@ -65,4 +65,8 @@ spec:
       kind: HelmRelease
       name: cnpg
       namespace: cnpg-system
+    - apiVersion: helm.toolkit.fluxcd.io/v2
+      kind: HelmRelease
+      name: tuppr
+      namespace: kube-system-upgrade
   timeout: 5m

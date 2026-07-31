@@ -1,0 +1,26 @@
+# CONFIRMED root cause of tuppr's HelmRelease failure ("no matches for
+# kind ServiceAccount in version talos.dev/v1alpha1"), straight from
+# tuppr's own README: talos.dev/v1alpha1 ServiceAccount is a real,
+# Talos-native resource type, but it's only registered on the API server
+# once this feature is explicitly enabled. It was never turned on
+# anywhere in this build — tuppr's chart assumes it's already there as a
+# prerequisite, it doesn't enable it for you.
+#
+# Applied cluster-wide (all 3 nodes), not just workers — tuppr's
+# controller pod and its per-node upgrade Jobs can land on different
+# nodes over the course of an upgrade, and every node whose Talos API a
+# pod might need to reach needs this enabled, not just wherever the
+# controller happens to be scheduled right now.
+#
+# os:admin is the role tuppr's own docs specify — it needs real
+# write/upgrade capability, not just read access. allowedKubernetesNamespaces
+# scoped to exactly tuppr's actual namespace (kube-system-upgrade), not
+# the "system-upgrade" shown in tuppr's generic example.
+machine:
+  features:
+    kubernetesTalosAPIAccess:
+      enabled: true
+      allowedRoles:
+        - os:admin
+      allowedKubernetesNamespaces:
+        - kube-system-upgrade

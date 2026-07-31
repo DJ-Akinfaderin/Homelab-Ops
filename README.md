@@ -215,6 +215,13 @@ PR at a time. **Merge these PRs in order, never batch them** — skipping a
 minor version is an unsupported upgrade path Tuppr won't stop you from
 attempting.
 
+Tuppr also needs a real machine config prerequisite before its HelmRelease
+will even install cleanly — `talos.dev/v1alpha1 ServiceAccount` isn't a
+resource type that exists by default, it requires
+`machine.features.kubernetesTalosAPIAccess` enabled on every node first.
+This is a genuine node-level operation, not something Git/Flux can apply
+on its own — see `infrastructure/tuppr/README.md` for the exact command.
+
 ## A note on cert-manager
 Traefik's own TLS was never actually wired up to a real ACME flow — this
 replaces that gap entirely. cert-manager issues one wildcard cert via

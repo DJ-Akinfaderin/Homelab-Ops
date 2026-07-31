@@ -12,7 +12,10 @@ metadata:
 spec:
   talos:
     # renovate: datasource=docker depName=ghcr.io/siderolabs/installer
-    version: v1.13.6   # set to whatever you actually bootstrapped with
+    # CONFIRMED matches actual running version (v1.13.7, confirmed via
+    # `talosctl version` during the GPU/NFS extension fix) — the previous
+    # value (v1.13.6) was stale and behind what's actually running.
+    version: v1.13.7
   policy:
     debug: false
     force: false          # don't skip etcd health checks
@@ -21,6 +24,13 @@ spec:
     priorityClassName: system-node-critical
     stage: false
     timeout: 30m
+  # Explicit, not left to the chart's default — this is a real 3-node
+  # cluster (1 control-plane + 2 workers), not the single-node edge case
+  # tuppr's own docs specifically call out where drain gets disabled
+  # automatically. Draining before each node reboots is the safe,
+  # intended behavior here.
+  drain:
+    enabled: true
 ---
 apiVersion: tuppr.home-operations.com/v1alpha1
 kind: KubernetesUpgrade
