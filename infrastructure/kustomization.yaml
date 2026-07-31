@@ -37,3 +37,4 @@ resources:
   - radar/ingress-lan.yaml
   - radar/ingress-tailscale.yaml
   - radar/clusterrolebinding.yaml
+  - metrics-server/release.yaml

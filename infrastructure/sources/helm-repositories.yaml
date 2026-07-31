@@ -135,3 +135,12 @@ metadata:
 spec:
   interval: 1h
   url: https://skyhook-io.github.io/helm-charts
+---
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmRepository
+metadata:
+  name: metrics-server
+  namespace: kube-system
+spec:
+  interval: 1h
+  url: https://kubernetes-sigs.github.io/metrics-server/

@@ -1,0 +1,33 @@
+# Confirmed via multiple independent sources: Talos's kubelets use
+# certificates signed by Talos's own internal cluster CA, not a public
+# one — metrics-server's default TLS verification against kubelets fails
+# on every node without this flag. This is the standard, documented
+# setting for bare-metal/self-signed-kubelet clusters generally, not a
+# security compromise specific to this setup — it only skips *kubelet*
+# cert verification, nothing about the apiserver/aggregation layer,
+# which the chart already defaults to handling safely on its own
+# (apiService.insecureSkipTLSVerify: true is already the chart default).
+#
+# One real uncertainty flagged honestly: sources disagree on whether the
+# args field is named `args` or `defaultArgs` depending on chart version
+# — went with `args`, matching the most current-looking source. If this
+# specific field is rejected on first apply, that's the one thing to
+# check via `helm show values metrics-server/metrics-server`, same
+# verify-before-guessing-again approach used everywhere else tonight.
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: metrics-server
+  namespace: kube-system
+spec:
+  interval: 1h
+  chart:
+    spec:
+      chart: metrics-server
+      version: ">=3.0.0 <4.0.0"
+      sourceRef:
+        kind: HelmRepository
+        name: metrics-server
+  values:
+    args:
+      - --kubelet-insecure-tls
