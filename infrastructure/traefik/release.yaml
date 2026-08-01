@@ -41,3 +41,32 @@ spec:
         memory: 64Mi
       limits:
         memory: 256Mi
+    # Traefik's own built-in dashboard — confirmed real field structure
+    # from Traefik's official docs. Creates a native IngressRoute (not a
+    # standard Ingress) pointing at the special internal api@internal
+    # service. Behind Authelia, same sensitivity level as Radar/Gatus —
+    # this shows real operational detail about every route in the
+    # cluster. LAN-only for now (no separate Tailscale route) — the
+    # built-in dashboard is really a "what's configured" view more than
+    # a traffic dashboard; see the metrics block below for the richer,
+    # historical traffic view via Grafana.
+    ingressRoute:
+      dashboard:
+        enabled: true
+        matchRule: Host(`traefik.home.dakin.im`)
+        entryPoints:
+          - websecure
+        middlewares:
+          - name: authelia
+            namespace: authelia
+    # Confirmed real field structure directly from traefik/traefik-helm-
+    # chart's own EXAMPLES.md. kube-prometheus-stack's Prometheus already
+    # watches ServiceMonitors cluster-wide by default, same as every
+    # other PrometheusRule/ServiceMonitor in this repo — no extra label
+    # wiring needed.
+    metrics:
+      prometheus:
+        service:
+          enabled: true
+        serviceMonitor:
+          enabled: true

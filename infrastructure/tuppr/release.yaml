@@ -82,3 +82,21 @@ spec:
                 value:
                   name: TALOSCONFIG
                   value: /var/run/secrets/talos.dev/talosconfig
+              # One more targeted, HONESTLY-UNCERTAIN guess — could not
+              # find a confirmed fix via search or tuppr's own docs/
+              # issues for this specific problem. The log line itself
+              # ("webhook-config": "", "dns-name": ".kube-system-
+              # upgrade.svc", "secret": "") shows dns-name IS correctly
+              # populated (derived from namespace automatically) while
+              # webhook-config and secret are both empty — meaning those
+              # two specifically come from flags never being set when
+              # webhook.enabled: false, not a namespace/templating issue.
+              # Guessing the flag name by following this project's own
+              # consistent pattern (--talosconfig-secret,
+              # --metrics-service-name). If this is wrong, expect the
+              # exact same crash to continue unchanged — a clean signal
+              # to stop guessing and treat this as a real, unresolved
+              # upstream gap rather than try a fourth name.
+              - op: add
+                path: /spec/template/spec/containers/0/args/-
+                value: --webhook-secret-name=tuppr-webhook-cert

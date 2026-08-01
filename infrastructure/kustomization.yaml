@@ -19,6 +19,8 @@ resources:
   - traefik/release.yaml
   - storage/nfs-provisioner.yaml
   - monitoring/release.yaml
+  - monitoring/alertmanager-ingress-lan.yaml
+  - monitoring/alertmanager-ingress-tailscale.yaml
   - victorialogs/release.yaml
   - alloy/release.yaml
   - gatus/release.yaml

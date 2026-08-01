@@ -92,6 +92,14 @@ spec:
     alertmanager:
       enabled: true
       alertmanagerSpec:
+        # Confirmed real gap: without this, Alertmanager's own generated
+        # notification links (including what shows up in Pushover
+        # alerts) default to its internal-only cluster Service DNS —
+        # unreachable from a phone or any external client. Set to the
+        # Tailscale hostname specifically (not the LAN one) since that's
+        # reachable regardless of which network you're actually on when
+        # an alert comes in, not just at home.
+        externalUrl: "https://alertmanager.cerberus-sturgeon.ts.net"
         resources:
           requests:
             cpu: 25m

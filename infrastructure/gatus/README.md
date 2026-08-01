@@ -31,3 +31,6 @@ same treatment, same option.
 needing this resolution: gatus, jellyfin, immich, radar. (Capacitor was
 removed after Radar's GitOps view made it redundant — no longer needs a
 DNS entry.)
+
+**Update 3:** `traefik.home.dakin.im` and `alertmanager.home.dakin.im` —
+same treatment. Six hostnames now.
