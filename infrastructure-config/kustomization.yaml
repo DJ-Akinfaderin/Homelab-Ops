@@ -32,14 +32,13 @@ resources:
   - ../infrastructure/monitoring/rules/media-apps.yaml
   - ../infrastructure/monitoring/rules/cluster-ops.yaml
 
-  # tuppr.home-operations.com CRDs, from tuppr/release.yaml — re-added
-  # after the actual root cause was confirmed and fixed: the chart's
-  # release wasn't failing on its own account, it needed
-  # kubernetesTalosAPIAccess enabled in the machine config first (see
-  # talos/patches/kubernetes-talos-api-access.yaml). Applying that patch
-  # to the live cluster is a separate, required step before this
-  # reconciles cleanly — see infrastructure/tuppr/README.md.
-  - ../infrastructure/tuppr/upgrades.yaml
+  # tuppr.home-operations.com CRDs, from tuppr/release.yaml — removed
+  # again given tuppr's ongoing instability (see the comment in
+  # clusters/homelab/infrastructure.yaml's healthChecks). Applying this
+  # against possibly-unregistered CRDs risks the same dry-run failure
+  # class as the very first incident tonight (cert-manager). Re-add once
+  # tuppr's HelmRelease is confirmed genuinely, stably Ready.
+  # - ../infrastructure/tuppr/upgrades.yaml
 
   # traefik.io CRDs, from traefik/release.yaml
   - ../infrastructure/authelia/middleware.yaml
