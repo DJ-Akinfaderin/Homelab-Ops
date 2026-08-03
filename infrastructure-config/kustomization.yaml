@@ -32,13 +32,14 @@ resources:
   - ../infrastructure/monitoring/rules/media-apps.yaml
   - ../infrastructure/monitoring/rules/cluster-ops.yaml
 
-  # tuppr.home-operations.com CRDs, from tuppr/release.yaml — removed
-  # again given tuppr's ongoing instability (see the comment in
-  # clusters/homelab/infrastructure.yaml's healthChecks). Applying this
-  # against possibly-unregistered CRDs risks the same dry-run failure
-  # class as the very first incident tonight (cert-manager). Re-add once
-  # tuppr's HelmRelease is confirmed genuinely, stably Ready.
-  # - ../infrastructure/tuppr/upgrades.yaml
+  # tuppr.home-operations.com CRDs, from tuppr/release.yaml — re-added
+  # after HelmRelease reached genuinely, stably Ready. Root cause of the
+  # earlier instability was `webhook.enabled: false` in values, which
+  # skipped the RBAC Role that grants the SA create/update on Secrets
+  # in this namespace but did NOT disable the cert-rotation controller
+  # inside the manager binary — that always runs. Reverting to chart
+  # defaults fixed both the RBAC gap and the crash-loop simultaneously.
+  - ../infrastructure/tuppr/upgrades.yaml
 
   # traefik.io CRDs, from traefik/release.yaml
   - ../infrastructure/authelia/middleware.yaml
