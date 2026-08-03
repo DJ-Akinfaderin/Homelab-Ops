@@ -1,0 +1,45 @@
+# PHASE 1.5: ClusterSecretStore + every ExternalSecret. Sits between
+# ../infrastructure/ (Phase 1, HelmReleases + stock K8s types) and
+# ../infrastructure-config/ (Phase 2, every other CR). Depends on Phase 1
+# for the external-secrets.io CRDs to exist. Depended on by Phase 2 so
+# that any resource whose admission webhook validates the CONTENTS of a
+# Secret (e.g. tuppr's TalosUpgrade/KubernetesUpgrade webhooks checking
+# for a specific secret key) doesn't get applied until the ExternalSecret
+# has actually synced and populated its target Secret.
+#
+# This phase exists because of a real incident: infrastructure-config
+# once contained both an ExternalSecret update AND a webhook-validated CR
+# that depended on the updated Secret. Flux server-side dry-runs the whole
+# batch at once, so the CR validation failure blocked the ExternalSecret
+# update from ever being applied — a hard deadlock, broken only by
+# `kubectl apply`-ing the ExternalSecret directly to bypass Flux.
+# Splitting these into separate Flux Kustomizations with an explicit
+# dependsOn chain guarantees the Secret is populated before any CR in
+# Phase 2 tries to reference it.
+#
+# A secondary benefit: several Phase 1 HelmReleases (Tailscale, Authelia,
+# monitoring/Alertmanager, etc.) mount Secrets produced by ExternalSecrets
+# here — those pods previously sat Pending until Phase 2 finished. Now
+# they only wait for Phase 1.5, which is a smaller and faster batch.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  # ClusterSecretStore first — every ExternalSecret below references it.
+  # Ordering within this file doesn't matter for apply-time success,
+  # only for how quickly ExternalSecrets can start syncing once the
+  # store is available.
+  - ../infrastructure/external-secrets/secretstore.yaml
+
+  # All ExternalSecrets, grouped by tool. Files themselves stay in their
+  # per-tool directories under ../infrastructure/ — this file just
+  # controls WHEN they get applied relative to the rest of the cluster.
+  - ../infrastructure/monitoring/external-secret.yaml
+  - ../infrastructure/gatus/external-secret.yaml
+  - ../infrastructure/tailscale/external-secret.yaml
+  - ../infrastructure/renovate/external-secret.yaml
+  - ../infrastructure/tuppr/external-secret.yaml
+  - ../infrastructure/cert-manager/external-secret.yaml
+  - ../infrastructure/authelia/external-secret-postgres.yaml
+  - ../infrastructure/authelia/external-secret-core.yaml
+  - ../infrastructure/authelia/external-secret-users.yaml
+  - ../infrastructure/radar/external-secret.yaml

@@ -1,7 +1,15 @@
-# PHASE 2 — every custom resource that depends on a CRD from Phase 1.
-# dependsOn + wait: true on the infrastructure Kustomization means this
-# genuinely waits for those HelmReleases to report healthy (CRDs
-# registered), not just "applied without erroring."
+# PHASE 2 — every custom resource that depends on a CRD from Phase 1,
+# EXCEPT ClusterSecretStore and ExternalSecrets (Phase 1.5, split out
+# after the tuppr ExternalSecret / webhook-validation deadlock — see the
+# top comment in ../../infrastructure-secrets/kustomization.yaml for the
+# full incident writeup).
+#
+# dependsOn: infrastructure-secrets + wait: true means this genuinely
+# waits for every ExternalSecret to have populated its target Secret
+# before dry-running any resource here — not just for the ExternalSecrets
+# to have been applied. That's the guarantee that keeps webhook-validated
+# CRs (like tuppr's) from failing admission because a referenced Secret
+# key isn't there yet.
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata:
@@ -9,7 +17,7 @@ metadata:
   namespace: flux-system
 spec:
   dependsOn:
-    - name: infrastructure
+    - name: infrastructure-secrets
   interval: 10m
   path: ./infrastructure-config
   prune: true

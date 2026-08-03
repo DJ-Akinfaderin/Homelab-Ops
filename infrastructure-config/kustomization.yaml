@@ -1,8 +1,25 @@
-# PHASE 2: every resource whose `kind` is a CRD installed by a HelmRelease
-# in ../infrastructure/. Reconciled by a separate Flux Kustomization
-# (clusters/homelab/infrastructure-config.yaml) that depends on the
-# infrastructure Kustomization being fully healthy first — see that file's
-# comment for why this split exists at all.
+# PHASE 2: every custom resource whose `kind` is a CRD installed by a
+# HelmRelease in ../infrastructure/, EXCEPT ClusterSecretStore and
+# ExternalSecrets — those live in ../infrastructure-secrets/ (Phase 1.5)
+# so they're guaranteed to be synced before any resource here that
+# depends on the Secrets they produce. Reconciled by a separate Flux
+# Kustomization (../clusters/homelab/infrastructure-config.yaml) that
+# depends on Phase 1.5 being fully healthy first.
+#
+# Rule of thumb for where a new file goes:
+#   - `kind` is a stock K8s type → ../infrastructure/
+#   - `kind` is ClusterSecretStore or ExternalSecret → ../infrastructure-secrets/
+#   - `kind` is any other CRD-defined type → here (../infrastructure-config/)
+#
+# ─── TEMPORARILY DISABLED RESOURCES ────────────────────────────────────
+# When commenting out a resource below to work around an outage or a
+# crash-looping HelmRelease, add its path and a one-line reason here so
+# future-you (or triage) can grep TEMPORARILY DISABLED and see at a
+# glance what's off. Re-enable when the underlying issue is fixed and
+# delete the entry.
+#
+# Currently disabled: (none)
+# ───────────────────────────────────────────────────────────────────────
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
@@ -13,32 +30,11 @@ resources:
   - ../infrastructure/cert-manager/cluster-issuer.yaml
   - ../infrastructure/cert-manager/certificate.yaml
 
-  # external-secrets.io CRDs, from external-secrets/release.yaml —
-  # secretstore.yaml first conceptually (everything else references it),
-  # though ordering within this file doesn't matter for apply-time
-  # success, only for how quickly ExternalSecrets actually sync.
-  - ../infrastructure/external-secrets/secretstore.yaml
-  - ../infrastructure/monitoring/external-secret.yaml
-  - ../infrastructure/gatus/external-secret.yaml
-  - ../infrastructure/tailscale/external-secret.yaml
-  - ../infrastructure/renovate/external-secret.yaml
-  - ../infrastructure/tuppr/external-secret.yaml
-  - ../infrastructure/cert-manager/external-secret.yaml
-  - ../infrastructure/authelia/external-secret-postgres.yaml
-  - ../infrastructure/authelia/external-secret-core.yaml
-  - ../infrastructure/authelia/external-secret-users.yaml
-
   # monitoring.coreos.com CRDs, from monitoring/release.yaml
   - ../infrastructure/monitoring/rules/media-apps.yaml
   - ../infrastructure/monitoring/rules/cluster-ops.yaml
 
-  # tuppr.home-operations.com CRDs, from tuppr/release.yaml — re-added
-  # after HelmRelease reached genuinely, stably Ready. Root cause of the
-  # earlier instability was `webhook.enabled: false` in values, which
-  # skipped the RBAC Role that grants the SA create/update on Secrets
-  # in this namespace but did NOT disable the cert-rotation controller
-  # inside the manager binary — that always runs. Reverting to chart
-  # defaults fixed both the RBAC gap and the crash-loop simultaneously.
+  # tuppr.home-operations.com CRDs, from tuppr/release.yaml
   - ../infrastructure/tuppr/upgrades.yaml
 
   # traefik.io CRDs, from traefik/release.yaml
@@ -47,6 +43,3 @@ resources:
 
   # postgresql.cnpg.io CRDs, from cnpg/release.yaml
   - ../infrastructure/authelia/postgres-cluster.yaml
-
-  # external-secrets.io CRDs, from external-secrets/release.yaml
-  - ../infrastructure/radar/external-secret.yaml
