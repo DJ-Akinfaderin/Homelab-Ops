@@ -17,38 +17,33 @@ spec:
       retries: 3
   upgrade:
     cleanupOnFail: true
-    # Confirmed real gap from comparing against a working reference on
-    # the same chart version (0.4.3): Helm doesn't update CRDs on
-    # upgrade by default. Given how much this chart's schema has evolved
-    # (the original bug this whole saga started with was reported at
-    # v0.0.45), stale CRDs from an earlier attempt were a real, plausible
-    # contributor worth ruling out.
+    # Helm doesn't update CRDs on upgrade by default. Given how much this
+    # chart's schema has evolved (the original bug this whole saga started
+    # with was reported at v0.0.45), stale CRDs from an earlier attempt
+    # were a real, plausible contributor worth ruling out.
     crds: CreateReplace
     remediation:
       retries: 3
   uninstall:
     keepHistory: false
-  values:
-    # Deliberately minimal, matching a confirmed-working reference config
-    # on this exact chart version — removed controller.env (TALOSCONFIG),
-    # controller.leaderElection, and rbac.create from an earlier attempt,
-    # none of which that working config sets either, and none of which
-    # fixed the actual crash on their own.
-    webhook:
-      enabled: false
-  # The actual fix, credited to a much better approach than guessing at
-  # values.yaml field names (tried twice, both wrong): patch the chart's
-  # RENDERED output directly via Flux's postRenderers, rather than
-  # depend on the chart exposing this as a configurable value at all.
-  # The pod's error is completely literal — "mkdir /home/nonroot/.talos:
-  # read-only file system" — so make that exact directory writable via a
-  # small emptyDir, sidestepping whatever internal env var/flag would
-  # otherwise redirect it.
-  #
-  # Using the /-  JSON Patch "append" syntax, not a plain path replace —
-  # the Deployment already has a real volumes array (the talosconfig
-  # secret mount, confirmed from `kubectl describe pod` earlier) that a
-  # naive `add` targeting the whole array would silently wipe out.
+  # Deliberately empty — no overrides needed. The prior `webhook.enabled:
+  # false` looked like a way to sidestep the cert-rotation crash, but it
+  # was actively CAUSING it: `webhook.enabled: false` skips the chart's
+  # webhook Service AND the RBAC Role that grants the SA create/update
+  # on Secrets in this namespace, but it does NOT disable the
+  # cert-rotation controller inside the manager binary — that always
+  # runs. Confirmed via live logs (`acquiring secret to update
+  # certificates: Secret "tuppr-webhook-cert" not found`) plus
+  # `kubectl auth can-i create secrets --as=system:serviceaccount:
+  # kube-system-upgrade:tuppr` returning `no`. Reverting to chart
+  # defaults (webhook.enabled: true) gets both the correct RBAC and the
+  # correct `--webhook-secret-name` flag automatically.
+  values: {}
+  # Patch the chart's rendered output directly for the two REAL
+  # deployment-level workarounds this cluster needs — neither of which is
+  # exposed as a chart value. Using JSON Patch `add` with the `/-` array
+  # append syntax; naive `add` targeting whole arrays would silently wipe
+  # the existing volumes/env/volumeMounts the chart puts there.
   postRenderers:
     - kustomize:
         patches:
@@ -56,6 +51,12 @@ spec:
               kind: Deployment
               name: tuppr
             patch: |
+              # The container runs with readOnlyRootFilesystem: true (chart
+              # default securityContext), so talosctl's client can't
+              # mkdir $HOME/.talos on startup — pod's error was completely
+              # literal: "mkdir /home/nonroot/.talos: read-only file
+              # system". Small emptyDir makes exactly that path writable,
+              # sidestepping the client's internal default-path logic.
               - op: add
                 path: /spec/template/spec/volumes/-
                 value:
@@ -66,37 +67,16 @@ spec:
                 value:
                   name: talos-home
                   mountPath: /home/nonroot/.talos
-              # Real progress from the emptyDir fix alone: the mkdir
-              # crash is fully gone, confirmed via fresh logs — but it
-              # revealed the actual remaining problem underneath. The
-              # client was falling back to its default path, and once
-              # that path became writable, it just found/created an
-              # EMPTY file there instead of ever reading the real,
-              # already-correctly-mounted secret at
-              # /var/run/secrets/talos.dev/talosconfig. This explicitly
-              # points it at the real file. Appending to the existing env
-              # array (CONTROLLER_NAMESPACE etc. are already there,
-              # confirmed via kubectl) rather than replacing it.
+              # Once the emptyDir made $HOME/.talos writable, the client
+              # started finding/creating an EMPTY config file there
+              # instead of ever reading the real, already-correctly-
+              # mounted talosconfig at /var/run/secrets/talos.dev/
+              # talosconfig. TALOSCONFIG env explicitly points it at the
+              # real file. Appending to the existing env array
+              # (CONTROLLER_NAMESPACE etc. are already there, confirmed
+              # via `kubectl describe pod`) rather than replacing it.
               - op: add
                 path: /spec/template/spec/containers/0/env/-
                 value:
                   name: TALOSCONFIG
                   value: /var/run/secrets/talos.dev/talosconfig
-              # One more targeted, HONESTLY-UNCERTAIN guess — could not
-              # find a confirmed fix via search or tuppr's own docs/
-              # issues for this specific problem. The log line itself
-              # ("webhook-config": "", "dns-name": ".kube-system-
-              # upgrade.svc", "secret": "") shows dns-name IS correctly
-              # populated (derived from namespace automatically) while
-              # webhook-config and secret are both empty — meaning those
-              # two specifically come from flags never being set when
-              # webhook.enabled: false, not a namespace/templating issue.
-              # Guessing the flag name by following this project's own
-              # consistent pattern (--talosconfig-secret,
-              # --metrics-service-name). If this is wrong, expect the
-              # exact same crash to continue unchanged — a clean signal
-              # to stop guessing and treat this as a real, unresolved
-              # upstream gap rather than try a fourth name.
-              - op: add
-                path: /spec/template/spec/containers/0/args/-
-                value: --webhook-secret-name=tuppr-webhook-cert
