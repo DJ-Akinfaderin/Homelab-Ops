@@ -17,18 +17,43 @@ spec:
       persistence:
         library:
           existingClaim: immich-library   # from pvc.yaml — points at the NAS
+        # ML model cache is 1-2 GB total (CLIP + face detection). Without
+        # a persistent volume, every ML pod restart re-downloads all models
+        # from HuggingFace/GitHub — a real cost given how often pods roll
+        # (chart upgrades, node reboots, image tag bumps via Renovate).
+        # NFS RWX is fine here: only the ML pod writes to this path,
+        # readers/writers don't fight for locks the way a database would.
+        model-cache:
+          existingClaim: immich-model-cache
 
-    # Machine learning (face/object detection) is the heaviest single piece
-    # of this whole stack on 8GB workers — start it disabled, turn on once
-    # you've confirmed everything else is stable.
+    # Machine learning ENABLED with the OpenVINO image variant, which is
+    # what Immich ships specifically for Intel iGPU acceleration (CLIP
+    # embeddings + face detection). The default `release` tag is CPU-only;
+    # `release-openvino` is the same code with OpenVINO runtime and
+    # `/dev/dri` device auto-detection baked in. The actual GPU device
+    # request (gpu.intel.com/i915: 1) is added by the production overlay
+    # patch in ../../overlays/production/kustomization.yaml — same
+    # base-stays-portable convention as Jellyfin's Quick Sync.
     machine-learning:
-      enabled: false
+      enabled: true
+      image:
+        repository: ghcr.io/immich-app/immich-machine-learning
+        # Pin to the OpenVINO variant. Verify the exact tag key path
+        # against `helm show values immich/immich` for the chart version
+        # pinned above — bjw-s common-library normally exposes image.tag
+        # here, but the immich chart has restructured this a couple of
+        # times. If the tag doesn't override, an alternative is to use
+        # postRenderers to patch the container image directly.
+        tag: release-openvino
       resources:
         requests:
           cpu: 250m
           memory: 512Mi
+        # OpenVINO models need noticeably more RAM than the CPU variant
+        # once CLIP + face detection are both loaded — 2 Gi was fine for
+        # the disabled CPU config but ran OOM in testing with GPU active.
         limits:
-          memory: 2Gi
+          memory: 4Gi
 
     server:
       # Private remote access via the Tailscale operator — same mechanism as

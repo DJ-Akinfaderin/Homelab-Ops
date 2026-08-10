@@ -9,3 +9,20 @@ spec:
   resources:
     requests:
       storage: 1Ti   # sized to whatever your NAS's photo volume actually has
+---
+# ML model cache — persists CLIP + face-detection models across pod
+# restarts. See the top of release.yaml's persistence block for why this
+# exists separately from the library PVC (very different access pattern,
+# want them on different NFS shares so a library backup doesn't drag
+# multi-GB model blobs along with it).
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: immich-model-cache
+  namespace: media
+spec:
+  accessModes: ["ReadWriteMany"]
+  storageClassName: nfs-client
+  resources:
+    requests:
+      storage: 10Gi   # generous — CLIP + face-detection combined is <2 GB currently

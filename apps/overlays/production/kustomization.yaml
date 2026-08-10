@@ -5,11 +5,35 @@ resources:
   - ../../base/jellyfin
   - ../../base/immich    # remove this line to disable Immich
 
-# Quick Sync GPU access — only Jellyfin needs it now.
+# Intel iGPU device requests — kept in the overlay (not the bases) so the
+# bases stay portable to environments without the Intel GPU device plugin
+# installed. If you ever tear down the gpu-plugin infrastructure, both of
+# these patches should be removed here in the same commit.
 patches:
+  # Jellyfin: Quick Sync for video transcoding
   - target:
       kind: Deployment
       name: jellyfin
+    patch: |
+      - op: add
+        path: /spec/template/spec/containers/0/resources/limits/gpu.intel.com~1i915
+        value: "1"
+
+  # Immich ML: OpenVINO inference for CLIP embeddings + face detection.
+  # Different workload from Jellyfin's Quick Sync — same underlying iGPU,
+  # both containers can share it (the Intel plugin allows concurrent
+  # workloads on the same device up to its configured sharedDevNum).
+  # Target Deployment name assumed "immich-machine-learning" per the
+  # chart's current naming; verify with `kubectl get deploy -n media`
+  # after first install and adjust here if the chart uses "immich-ml"
+  # or similar. If the patch silently no-ops (Deployment name mismatch),
+  # `kubectl describe pod` for the ML pod will show no GPU limit and
+  # OpenVINO will fall back to CPU without erroring — check the ML
+  # container's startup logs for "Loading OpenVINO on device: GPU" vs
+  # "CPU" to confirm which mode it's actually running.
+  - target:
+      kind: Deployment
+      name: immich-machine-learning
     patch: |
       - op: add
         path: /spec/template/spec/containers/0/resources/limits/gpu.intel.com~1i915
